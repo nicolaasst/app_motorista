@@ -6,13 +6,16 @@ interface AppHeaderProps {
   title: string;
   backTo?: string;
   backLabel?: string;
+  onBack?: () => void;
 }
 
 // Header fixo reimplementado inline em 14 das 16 telas (ver
-// docs/PATTERN_INVENTORY.md). Extraído aqui na Fase 4; a adoção tela a
-// tela acontece na Fase 6, substituindo o bloco inline por este
-// componente sem alterar a marcação renderizada.
-export default function AppHeader({ title, backTo, backLabel }: AppHeaderProps) {
+// docs/PATTERN_INVENTORY.md). Extraído aqui na Fase 4; adotado tela a
+// tela na Fase 6, substituindo o bloco inline por este componente sem
+// alterar a marcação renderizada. `backTo` navega para uma rota fixa
+// (<Link>); `onBack` preserva telas que usavam `navigate(-1)` (histórico
+// real do navegador) — os dois nunca são passados juntos.
+export default function AppHeader({ title, backTo, backLabel, onBack }: AppHeaderProps) {
   const { driver, notifications, markNotificationsRead } = useApp();
   const unreadCount = notifications.filter((item) => item.unread).length;
 
@@ -20,7 +23,16 @@ export default function AppHeader({ title, backTo, backLabel }: AppHeaderProps) 
     <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe">
       <div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-space-sm">
-          {backTo ? (
+          {onBack ? (
+            <button
+              aria-label={backLabel || 'Voltar'}
+              className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all"
+              onClick={onBack}
+              type="button"
+            >
+              <Icon className="text-[24px]" name="arrow_back" />
+            </button>
+          ) : backTo ? (
             <Link
               aria-label={backLabel || 'Voltar'}
               className="w-10 h-10 -ml-2 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all"

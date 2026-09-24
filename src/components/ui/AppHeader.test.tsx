@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { axe } from 'vitest-axe';
@@ -37,6 +37,15 @@ describe('AppHeader', () => {
     renderHeader({ title: 'Suporte', backTo: '/perfil', backLabel: 'Voltar para o Perfil' });
     const back = screen.getByLabelText('Voltar para o Perfil');
     expect(back).toHaveAttribute('href', '/perfil');
+  });
+
+  it('renders a back button that calls onBack instead of navigating when set', () => {
+    const onBack = vi.fn();
+    renderHeader({ title: 'Parada', backTo: '/rota', onBack, backLabel: 'Voltar' });
+    const back = screen.getByLabelText('Voltar');
+    expect(back.tagName).toBe('BUTTON');
+    fireEvent.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   it('has no critical accessibility violations', async () => {

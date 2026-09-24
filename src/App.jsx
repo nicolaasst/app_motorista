@@ -8,9 +8,11 @@ import {
 } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext.jsx';
 
-const A1LoginDoMotorista = lazy(() => import('./pages/A1LoginDoMotorista.jsx'));
-const A2EsqueciMinhaSenhaOtp = lazy(() => import('./pages/A2EsqueciMinhaSenhaOtp.jsx'));
-const A3ChecklistDoVeCulo = lazy(() => import('./pages/A3ChecklistDoVeCulo.jsx'));
+const A1LoginDoMotorista = lazy(() => import('./features/auth/pages/A1LoginDoMotorista.tsx'));
+const A2EsqueciMinhaSenhaOtp = lazy(
+  () => import('./features/auth/pages/A2EsqueciMinhaSenhaOtp.tsx'),
+);
+const A3ChecklistDoVeiculo = lazy(() => import('./features/auth/pages/A3ChecklistDoVeiculo.tsx'));
 const B1RotaDoDiaHome = lazy(() => import('./pages/B1RotaDoDiaHome.jsx'));
 const B2DetalheDaParada = lazy(() => import('./pages/B2DetalheDaParada.jsx'));
 const B3NavegaOAtAParada = lazy(() => import('./pages/B3NavegaOAtAParada.jsx'));
@@ -139,7 +141,7 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoutes />,
         children: [
-          { path: '/checklist', element: <A3ChecklistDoVeCulo /> },
+          { path: '/checklist', element: <A3ChecklistDoVeiculo /> },
           { path: '/rota', element: <B1RotaDoDiaHome /> },
           { path: '/rota/parada/:stopId', element: <B2DetalheDaParada /> },
           { path: '/rota/parada/:stopId/navegar', element: <B3NavegaOAtAParada /> },
