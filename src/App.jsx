@@ -27,6 +27,7 @@ const D2DetalheDoReciboComAssinatura = lazy(
 const E1PerfilDoMotorista = lazy(() => import('./pages/E1PerfilDoMotorista.jsx'));
 const E2CentralDeSuporteEAjuda = lazy(() => import('./pages/E2CentralDeSuporteEAjuda.jsx'));
 const LogotipoRotaproDriver = lazy(() => import('./pages/LogotipoRotaproDriver.jsx'));
+const DesignSystemShowcase = lazy(() => import('./dev/DesignSystemShowcase.tsx'));
 
 function ProtectedRoutes() {
   const { isAuthenticated } = useApp();
@@ -87,6 +88,7 @@ function DevGallery() {
     ['/recibos/receipt-88401', 'D2 Recibo'],
     ['/perfil', 'E1 Perfil'],
     ['/suporte', 'E2 Suporte'],
+    ['/design-system', 'Design System (Fase 4)'],
   ];
   return (
     <div style={{ padding: 24, fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
@@ -119,6 +121,7 @@ const devOnlyRoutes = import.meta.env.DEV
   ? [
       { path: '/dev', element: <DevGallery /> },
       { path: '/logo', element: <LogotipoRotaproDriver /> },
+      { path: '/design-system', element: <DesignSystemShowcase /> },
     ]
   : [];
 
