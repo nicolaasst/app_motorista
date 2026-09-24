@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
 
 export default function A2EsqueciMinhaSenhaOtp() {
+  const navigate = useNavigate();
   useEffect(() => { document.title = 'A.2 Esqueci Minha Senha / Validação OTP - RotaPro Logística'; }, []);
   return (
-    <ScreenFrame screenId="a.2_esqueci_minha_senha_otp"><PageRuntime screenId="a.2_esqueci_minha_senha_otp">
+    <ScreenFrame screenId="a.2_esqueci_minha_senha_otp">
       {/* BEGIN: MobileDeviceFrame */}
 <div className="mobile-screen-wrapper flex flex-col justify-between" data-purpose="mobile-viewport-container">
   {/* BEGIN: TopHeaderSection */}
@@ -13,7 +14,7 @@ export default function A2EsqueciMinhaSenhaOtp() {
     {/* Linha Superior: Botão Voltar & Badge de Segurança */}
     <div className="flex items-center justify-between gap-2 mb-6">
       {/* Botão Voltar para Login */}
-      <button aria-label="Voltar para a tela de login" className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center transition-colors active:scale-95 text-white" type="button">
+      <button aria-label="Voltar para a tela de login" className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md flex items-center justify-center transition-colors active:scale-95 text-white" onClick={() => navigate(-1)} type="button">
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
         </svg>
@@ -85,7 +86,7 @@ export default function A2EsqueciMinhaSenhaOtp() {
       </div>
       {/* END: DispatchInfoBlock */}
       {/* BEGIN: OtpInputSection */}
-      <form className="space-y-5 flex-1 flex flex-col justify-between">
+      <form className="space-y-5 flex-1 flex flex-col justify-between" onSubmit={(event) => event.preventDefault()}>
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-2">
@@ -186,7 +187,7 @@ export default function A2EsqueciMinhaSenhaOtp() {
             <span>Validar Código e Redefinir Senha</span>
           </button>
           {/* Botão Secundário de Retorno */}
-          <button className="w-full py-2.5 px-4 rounded-full text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" type="button">
+          <button className="w-full py-2.5 px-4 rounded-full text-xs font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors" onClick={() => navigate('/')} type="button">
             Cancelar e voltar para o Login
           </button>
         </div>
@@ -228,6 +229,6 @@ export default function A2EsqueciMinhaSenhaOtp() {
   {/* END: SupportFooterSection */}
 </div>
 {/* END: MobileDeviceFrame */}
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

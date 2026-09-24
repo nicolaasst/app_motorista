@@ -1,11 +1,33 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useNavigate, Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext.jsx';
+
+const VEHICLE_CHECKLIST_ITEMS = [
+  { key: 'pneus', label: '1. Pneus e Calibragem' },
+  { key: 'luzes', label: '2. Luzes, Faróis e Setas' },
+  { key: 'oleo', label: '3. Nível de Óleo e Combustível' },
+  { key: 'documentacao', label: '4. Documentação e CRLV-e' },
+  { key: 'lataria', label: '5. Lataria e Avarias Externas' },
+];
 
 export default function A3ChecklistDoVeCulo() {
+  const navigate = useNavigate();
+  const { updateChecklist } = useApp();
+  const [items, setItems] = useState(() =>
+    Object.fromEntries(VEHICLE_CHECKLIST_ITEMS.map((item) => [item.key, true])),
+  );
+
+  const handleStartShift = async () => {
+    // Fase 3 corrige a coleta real das respostas; o bloqueio por item crítico
+    // (reprovação impedindo o início da rota) é objeto da Fase 5.
+    await updateChecklist('vehicle', items);
+    navigate('/rota');
+  };
+
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
   return (
-    <ScreenFrame screenId="a.3_checklist_do_ve_culo"><PageRuntime screenId="a.3_checklist_do_ve_culo">
+    <ScreenFrame screenId="a.3_checklist_do_ve_culo">
       <div>
   <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe"><div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="flex items-center gap-space-sm"><img alt="Logotipo RotaPro Driver" className="h-8 w-auto object-contain" src="/screens/logotipo_rotapro_driver.png" /><div className="flex flex-col"><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RotaPro</span><span className="font-headline-sm text-headline-sm text-on-surface leading-tight">Rota</span></div></div><div className="flex items-center gap-space-sm"><button aria-label="Notificações" className="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors"><span className="material-symbols-outlined text-[24px]">notifications</span><span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary-container text-on-primary font-label-sm text-[10px] ring-2 ring-surface">3</span></button><div className="relative flex items-center justify-center"><img alt="Profile" className="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20" src="/screens/logotipo_rotapro_driver.png" /><span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-1 ring-surface" /></div></div></div></header><main className="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface px-margin"><div className="flex flex-col w-full pb-10 space-y-space-md">
       {/* Header Context / Guidance */}
@@ -83,7 +105,7 @@ export default function A3ChecklistDoVeCulo() {
       <div className="flex flex-col space-y-space-xs">
         <div className="flex items-center justify-between px-space-xs">
           <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Itens de Verificação</span>
-          <span className="font-label-sm text-label-sm text-primary font-bold" id="checklist-counter">5 de 5 conformes</span>
+          <span className="font-label-sm text-label-sm text-primary font-bold" id="checklist-counter">{Object.values(items).filter(Boolean).length} de {VEHICLE_CHECKLIST_ITEMS.length} conformes</span>
         </div>
         {/* Check item 1: Pneus e Calibragem */}
         <div className="bg-surface-container-lowest rounded-DEFAULT p-space-md shadow-sm flex flex-col space-y-space-sm">
@@ -99,11 +121,11 @@ export default function A3ChecklistDoVeCulo() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-space-sm pt-space-xs" data-toggle-group="item-1">
-            <button className="btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-primary-container text-on-primary shadow-sm transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${items.pneus ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, pneus: true }))} type="button">
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Sim</span>
             </button>
-            <button className="btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-surface-container-low text-on-surface-variant transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${!items.pneus ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, pneus: false }))} type="button">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
               <span>Não</span>
             </button>
@@ -123,11 +145,11 @@ export default function A3ChecklistDoVeCulo() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-space-sm pt-space-xs" data-toggle-group="item-2">
-            <button className="btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-primary-container text-on-primary shadow-sm transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${items.luzes ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, luzes: true }))} type="button">
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Sim</span>
             </button>
-            <button className="btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-surface-container-low text-on-surface-variant transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${!items.luzes ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, luzes: false }))} type="button">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
               <span>Não</span>
             </button>
@@ -147,11 +169,11 @@ export default function A3ChecklistDoVeCulo() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-space-sm pt-space-xs" data-toggle-group="item-3">
-            <button className="btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-primary-container text-on-primary shadow-sm transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${items.oleo ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, oleo: true }))} type="button">
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Sim</span>
             </button>
-            <button className="btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-surface-container-low text-on-surface-variant transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${!items.oleo ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, oleo: false }))} type="button">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
               <span>Não</span>
             </button>
@@ -171,11 +193,11 @@ export default function A3ChecklistDoVeCulo() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-space-sm pt-space-xs" data-toggle-group="item-4">
-            <button className="btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-primary-container text-on-primary shadow-sm transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${items.documentacao ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, documentacao: true }))} type="button">
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Sim</span>
             </button>
-            <button className="btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-surface-container-low text-on-surface-variant transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${!items.documentacao ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, documentacao: false }))} type="button">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
               <span>Não</span>
             </button>
@@ -195,17 +217,17 @@ export default function A3ChecklistDoVeCulo() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-space-sm pt-space-xs" data-toggle-group="item-5">
-            <button className="btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-primary-container text-on-primary shadow-sm transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-sim h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${items.lataria ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, lataria: true }))} type="button">
               <span className="material-symbols-outlined text-[18px]">check_circle</span>
               <span>Sim</span>
             </button>
-            <button className="btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md bg-surface-container-low text-on-surface-variant transition-transform active:scale-95" type="button">
+            <button className={`btn-toggle-nao h-11 rounded-full flex items-center justify-center space-x-1.5 font-label-md text-label-md transition-transform active:scale-95 ${!items.lataria ? 'bg-primary-container text-on-primary shadow-sm' : 'bg-surface-container-low text-on-surface-variant'}`} onClick={() => setItems((current) => ({ ...current, lataria: false }))} type="button">
               <span className="material-symbols-outlined text-[18px]">cancel</span>
               <span>Não</span>
             </button>
           </div>
           {/* Warning note for Item 5 */}
-          <div className="hidden flex items-start space-x-space-xs p-space-sm bg-error-container/40 text-on-error-container rounded-DEFAULT transition-all" id="avaria-alert">
+          <div className={`${items.lataria ? 'hidden' : 'flex'} items-start space-x-space-xs p-space-sm bg-error-container/40 text-on-error-container rounded-DEFAULT transition-all`} id="avaria-alert">
             <span className="material-symbols-outlined text-error text-[20px] flex-shrink-0">warning</span>
             <span className="font-body-sm text-body-sm">Se marcado Não, anexar foto da avaria obrigatoriamente logo abaixo.</span>
           </div>
@@ -251,14 +273,14 @@ export default function A3ChecklistDoVeCulo() {
       </div>
       {/* Bottom CTA Container */}
       <div className="pt-space-xs">
-        <button className="w-full h-[54px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg shadow-lg shadow-primary-container/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] hover:bg-primary" id="btn-iniciar-turno" type="button">
+        <button className="w-full h-[54px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg shadow-lg shadow-primary-container/25 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] hover:bg-primary" id="btn-iniciar-turno" onClick={handleStartShift} type="button">
           <span>Iniciar Turno e Carregar Rotas</span>
           <span className="material-symbols-outlined text-[22px]">arrow_forward</span>
         </button>
       </div>
     </div>
-  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><a aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" data-path="rota" href="#"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="historico" href="#"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="recibos" href="#"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="perfil" href="#"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a></div></nav>
+  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><Link aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" to="/rota"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/historico"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/recibos"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/perfil"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link></div></nav>
 </div>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

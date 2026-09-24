@@ -1,11 +1,18 @@
 import { useEffect } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useNavigate, Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext.jsx';
 
 export default function E1PerfilDoMotorista() {
+  const navigate = useNavigate();
+  const { logout } = useApp();
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
   return (
-    <ScreenFrame screenId="e.1_perfil_do_motorista"><PageRuntime screenId="e.1_perfil_do_motorista">
+    <ScreenFrame screenId="e.1_perfil_do_motorista">
       <div>
   <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe"><div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="flex items-center gap-space-sm"><img alt="Logotipo RotaPro Driver" className="h-8 w-auto object-contain" src="/screens/logotipo_rotapro_driver.png" /><div className="flex flex-col"><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RotaPro</span><span className="font-headline-sm text-headline-sm text-on-surface leading-tight">Perfil</span></div></div><div className="flex items-center gap-space-sm"><button aria-label="Notificações" className="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors"><span className="material-symbols-outlined text-[24px]">notifications</span><span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary-container text-on-primary font-label-sm text-[10px] ring-2 ring-surface">3</span></button><div className="relative flex items-center justify-center"><img alt="Lucas Silveira" className="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20" src="/screens/logotipo_rotapro_driver.png" /><span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-1 ring-surface" /></div></div></div></header><main className="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface px-margin"><div className="flex flex-col w-full gap-space-md">
       {/* Status do Cadastro & Alocação Rápida */}
@@ -265,7 +272,7 @@ export default function E1PerfilDoMotorista() {
       {/* 5. Central de Ajuda & Termos */}
       <div className="bg-surface-container-lowest rounded-3xl p-space-lg shadow-sm flex flex-col gap-space-md">
         {/* Card E.2 Suporte Direto */}
-        <a className="bg-surface-container-low hover:bg-surface-container p-space-md rounded-2xl flex items-center justify-between transition-colors" href="#">
+        <Link className="bg-surface-container-low hover:bg-surface-container p-space-md rounded-2xl flex items-center justify-between transition-colors" to="/suporte">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <span className="material-symbols-outlined text-[24px]">support_agent</span>
@@ -276,14 +283,14 @@ export default function E1PerfilDoMotorista() {
             </div>
           </div>
           <span className="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_forward_ios</span>
-        </a>
+        </Link>
         {/* Termos de Uso e Privacidade */}
         <div className="flex flex-col gap-1 text-on-surface-variant font-body-sm text-body-sm px-2">
-          <a className="py-1 flex items-center justify-between hover:text-on-surface transition-colors" href="#">
+          <a className="py-1 flex items-center justify-between hover:text-on-surface transition-colors" href="#" onClick={(event) => event.preventDefault()}>
             <span>Termos de Uso Operacional RotaPro</span>
             <span className="material-symbols-outlined text-[16px]">open_in_new</span>
           </a>
-          <a className="py-1 flex items-center justify-between hover:text-on-surface transition-colors" href="#">
+          <a className="py-1 flex items-center justify-between hover:text-on-surface transition-colors" href="#" onClick={(event) => event.preventDefault()}>
             <span>Política de Privacidade e LGPD de Rotas</span>
             <span className="material-symbols-outlined text-[16px]">open_in_new</span>
           </a>
@@ -295,14 +302,14 @@ export default function E1PerfilDoMotorista() {
       </div>
       {/* 6. Ação de Encerramento (Logoff) */}
       <div className="pt-2 pb-6 flex flex-col items-center">
-        <button className="w-full h-14 rounded-full bg-surface-container hover:bg-error-container text-on-surface hover:text-on-error-container font-label-lg text-label-lg flex items-center justify-center gap-2 transition-all" id="btn-logoff" type="button">
+        <button className="w-full h-14 rounded-full bg-surface-container hover:bg-error-container text-on-surface hover:text-on-error-container font-label-lg text-label-lg flex items-center justify-center gap-2 transition-all" id="btn-logoff" onClick={handleLogout} type="button">
           <span className="material-symbols-outlined text-[20px] text-error">logout</span>
           <span>Desconectar da Conta (Logoff)</span>
         </button>
       </div>
     </div>
-  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="rota" href="#"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="historico" href="#"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="recibos" href="#"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" data-path="perfil" href="#"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a></div></nav>
+  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/rota"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/historico"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/recibos"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" to="/perfil"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link></div></nav>
 </div>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

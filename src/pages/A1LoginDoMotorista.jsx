@@ -1,11 +1,26 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useApp } from '../context/AppContext.jsx';
 
 export default function A1LoginDoMotorista() {
+  const navigate = useNavigate();
+  const { login, showToast } = useApp();
+  const [showPassword, setShowPassword] = useState(false);
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const identifier = form.elements['driver-identifier'].value;
+    const password = form.elements['driver-password'].value;
+    const result = await login({ identifier, password });
+    if (result.ok) navigate('/checklist');
+    else showToast(result.message, 'warning');
+  };
+
   return (
-    <ScreenFrame screenId="a.1_login_do_motorista"><PageRuntime screenId="a.1_login_do_motorista">
+    <ScreenFrame screenId="a.1_login_do_motorista">
       <main className="flex-1 flex flex-col relative w-full pt-safe pb-safe bg-surface px-margin"><div className="flex flex-col w-full relative pb-8">
     <div className="relative w-full rounded-b-[2.5rem] overflow-hidden pt-6 pb-14 px-4 text-center shadow-lg" style={{background: 'linear-gradient(135deg, #0A0A0A 0%, #008400 40%, #00B000 70%, #88EF1B 100%)'}}>
       <div className="flex flex-col items-center justify-center space-y-3">
@@ -27,7 +42,7 @@ export default function A1LoginDoMotorista() {
           <h1 className="font-headline-lg text-headline-lg text-on-surface">Acesse seu turno</h1>
           <p className="font-body-md text-body-md text-secondary">Digite suas credenciais para sincronizar suas rotas</p>
         </div>
-        <form className="space-y-4" id="driver-login-form">
+        <form className="space-y-4" id="driver-login-form" onSubmit={handleSubmit}>
           <div className="space-y-1.5">
             <label className="font-label-md text-label-md text-on-surface block" htmlFor="driver-identifier">CPF ou Matrícula</label>
             <div className="relative flex items-center">
@@ -39,9 +54,9 @@ export default function A1LoginDoMotorista() {
             <label className="font-label-md text-label-md text-on-surface block" htmlFor="driver-password">Senha de Acesso</label>
             <div className="relative flex items-center">
               <span className="material-symbols-outlined absolute left-4 text-secondary pointer-events-none text-[22px]">lock</span>
-              <input autoComplete="current-password" className="w-full h-[52px] pl-12 pr-12 bg-surface-container-lowest rounded-full font-body-lg text-body-lg text-on-surface placeholder:text-secondary-fixed-dim focus:outline-none shadow-sm transition-all focus:ring-2 focus:ring-primary-container" id="driver-password" name="driver-password" placeholder="••••••••" required type="password" />
-              <button aria-label="Alternar visibilidade da senha" className="absolute right-3 w-10 h-10 flex items-center justify-center text-secondary hover:text-on-surface rounded-full transition-colors active:bg-surface-container" id="toggle-pwd-btn" type="button">
-                <span className="material-symbols-outlined text-[20px]" id="eye-icon">visibility</span>
+              <input autoComplete="current-password" className="w-full h-[52px] pl-12 pr-12 bg-surface-container-lowest rounded-full font-body-lg text-body-lg text-on-surface placeholder:text-secondary-fixed-dim focus:outline-none shadow-sm transition-all focus:ring-2 focus:ring-primary-container" id="driver-password" name="driver-password" placeholder="••••••••" required type={showPassword ? 'text' : 'password'} />
+              <button aria-label="Alternar visibilidade da senha" className="absolute right-3 w-10 h-10 flex items-center justify-center text-secondary hover:text-on-surface rounded-full transition-colors active:bg-surface-container" id="toggle-pwd-btn" onClick={() => setShowPassword((current) => !current)} type="button">
+                <span className="material-symbols-outlined text-[20px]" id="eye-icon">{showPassword ? 'visibility_off' : 'visibility'}</span>
               </button>
             </div>
           </div>
@@ -50,7 +65,7 @@ export default function A1LoginDoMotorista() {
               <input defaultChecked className="w-4 h-4 accent-primary rounded cursor-pointer" id="remember-me" type="checkbox" />
               <span className="font-label-md text-label-md text-secondary">Lembrar de mim</span>
             </label>
-            <button className="font-label-md text-label-md text-primary-container hover:underline focus:outline-none focus:underline" type="button">
+            <button className="font-label-md text-label-md text-primary-container hover:underline focus:outline-none focus:underline" onClick={() => navigate('/recuperar')} type="button">
               Esqueci minha senha
             </button>
           </div>
@@ -90,6 +105,6 @@ export default function A1LoginDoMotorista() {
     </div>
   </div>
 </main>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

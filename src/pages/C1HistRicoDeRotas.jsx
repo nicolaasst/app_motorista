@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function C1HistRicoDeRotas() {
+  const navigate = useNavigate();
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
   return (
-    <ScreenFrame screenId="c.1_hist_rico_de_rotas"><PageRuntime screenId="c.1_hist_rico_de_rotas">
+    <ScreenFrame screenId="c.1_hist_rico_de_rotas">
       <div>
   <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe"><div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="flex items-center gap-space-sm"><img alt="Logotipo RotaPro Driver" className="h-8 w-auto object-contain" src="/screens/logotipo_rotapro_driver.png" /><div className="flex flex-col"><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RotaPro</span><span className="font-headline-sm text-headline-sm text-on-surface leading-tight">Rota</span></div></div><div className="flex items-center gap-space-sm"><button aria-label="Notificações" className="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors"><span className="material-symbols-outlined text-[24px]">notifications</span><span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary-container text-on-primary font-label-sm text-[10px] ring-2 ring-surface">3</span></button><div className="relative flex items-center justify-center"><img alt="Profile" className="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20" src="/screens/logotipo_rotapro_driver.png" /><span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-1 ring-surface" /></div></div></div></header><main className="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface px-margin"><div className="flex flex-col w-full space-y-space-md">
       {/* Sub-header context & Sync Status */}
@@ -81,7 +82,7 @@ export default function C1HistRicoDeRotas() {
       {/* Completed Routes Card Stream */}
       <div className="flex flex-col space-y-space-md" id="routes-container">
         {/* Card 1: Ontem / Paulista 03 */}
-        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88412" data-neighborhood="Paulista">
+        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88412" data-neighborhood="Paulista" onClick={() => navigate('/historico/ROM-2024-88412')}>
           {/* Card Top Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col">
@@ -134,7 +135,7 @@ export default function C1HistRicoDeRotas() {
           </div>
         </div>
         {/* Card 2: 23 Out / Pinheiros */}
-        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88390" data-neighborhood="Pinheiros">
+        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88390" data-neighborhood="Pinheiros" onClick={() => navigate('/historico/ROM-2024-88390')}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col">
               <span className="font-body-sm text-body-sm text-secondary">23 de Outubro</span>
@@ -183,7 +184,7 @@ export default function C1HistRicoDeRotas() {
           </div>
         </div>
         {/* Card 3: 22 Out / Bela Vista & Centro (Has Occurrence) */}
-        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88345" data-has-issue="true" data-neighborhood="Centro">
+        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88345" data-has-issue="true" data-neighborhood="Centro" onClick={() => navigate('/historico/ROM-2024-88345')}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col">
               <span className="font-body-sm text-body-sm text-secondary">22 de Outubro</span>
@@ -232,7 +233,7 @@ export default function C1HistRicoDeRotas() {
           </div>
         </div>
         {/* Card 4: 21 Out / Itaim Bibi & Moema */}
-        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88310" data-neighborhood="Moema">
+        <div className="route-item bg-surface-container-lowest rounded-lg p-space-md shadow-sm transition-transform active:scale-[0.99] cursor-pointer" data-code="ROM-2024-88310" data-neighborhood="Moema" onClick={() => navigate('/historico/ROM-2024-88310')}>
           <div className="flex items-start justify-between gap-2">
             <div className="flex flex-col">
               <span className="font-body-sm text-body-sm text-secondary">21 de Outubro</span>
@@ -344,8 +345,8 @@ export default function C1HistRicoDeRotas() {
         <span className="font-body-sm text-body-sm text-inverse-on-surface flex-1">Relatório gerado e enviado para seu email!</span>
       </div>
     </div>
-  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><a aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" data-path="rota" href="#"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="historico" href="#"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="recibos" href="#"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="perfil" href="#"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a></div></nav>
+  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><Link aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" to="/rota"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/historico"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/recibos"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/perfil"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link></div></nav>
 </div>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

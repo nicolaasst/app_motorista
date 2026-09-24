@@ -1,18 +1,32 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 
 export default function B2DetalheDaParada() {
+  const navigate = useNavigate();
+  const { stopId = 'stop-05' } = useParams();
+  const [addressCopied, setAddressCopied] = useState(false);
+
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText('Av. Paulista, 1230 - Bela Vista, São Paulo - SP, 01310-100');
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 2400);
+    } catch {
+      // Clipboard indisponível (sem permissão/HTTPS); sem feedback falso.
+    }
+  };
+
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
   return (
-    <ScreenFrame screenId="b.2_detalhe_da_parada"><PageRuntime screenId="b.2_detalhe_da_parada">
+    <ScreenFrame screenId="b.2_detalhe_da_parada">
       <div>
   <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe"><div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="flex items-center gap-space-sm"><img alt="Logotipo RotaPro Driver" className="h-8 w-auto object-contain" src="/screens/logotipo_rotapro_driver.png" /><div className="flex flex-col"><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RotaPro</span><span className="font-headline-sm text-headline-sm text-on-surface leading-tight">Rota</span></div></div><div className="flex items-center gap-space-sm"><button aria-label="Notificações" className="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors"><span className="material-symbols-outlined text-[24px]">notifications</span><span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary-container text-on-primary font-label-sm text-[10px] ring-2 ring-surface">3</span></button><div className="relative flex items-center justify-center"><img alt="Profile" className="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20" src="/screens/logotipo_rotapro_driver.png" /><span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-1 ring-surface" /></div></div></div></header><main className="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface px-margin"><div className="flex flex-col w-full pb-32">
       {/* Top Navigation & Quick Actions Bar */}
       <div className="flex items-center justify-between py-space-sm mb-space-sm">
-        <a aria-label="Voltar para rota do dia" className="w-11 h-11 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" href="#">
+        <button aria-label="Voltar para rota do dia" className="w-11 h-11 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface hover:bg-surface-container active:scale-95 transition-all" onClick={() => navigate(-1)} type="button">
           <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-        </a>
+        </button>
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-space-xs">
             <span className="font-headline-sm text-headline-sm text-on-surface">Parada #05</span>
@@ -75,7 +89,7 @@ export default function B2DetalheDaParada() {
               <p className="font-body-sm text-body-sm text-secondary truncate">São Paulo - SP, 01310-100</p>
             </div>
           </div>
-          <button className="h-9 px-3 rounded-full bg-surface-container-lowest text-on-surface shadow-xs font-label-sm text-label-sm flex items-center gap-1 shrink-0 active:bg-surface-container-highest transition-colors" id="btnCopyAddress" title="Copiar endereço">
+          <button className="h-9 px-3 rounded-full bg-surface-container-lowest text-on-surface shadow-xs font-label-sm text-label-sm flex items-center gap-1 shrink-0 active:bg-surface-container-highest transition-colors" id="btnCopyAddress" onClick={handleCopyAddress} title="Copiar endereço" type="button">
             <span className="material-symbols-outlined text-[16px]">content_copy</span>
             <span>Copiar</span>
           </button>
@@ -194,7 +208,7 @@ export default function B2DetalheDaParada() {
         </div>
       </div>
       {/* Ambient Micro-Feedback Toast (Hidden by default) */}
-      <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#131313] text-on-primary px-4 py-2 rounded-full font-label-md text-label-md shadow-lg flex items-center gap-2 opacity-0 pointer-events-none transition-opacity duration-300" id="copyToast">
+      <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#131313] text-on-primary px-4 py-2 rounded-full font-label-md text-label-md shadow-lg flex items-center gap-2 pointer-events-none transition-opacity duration-300 ${addressCopied ? 'opacity-100' : 'opacity-0'}`} id="copyToast">
         <span className="material-symbols-outlined text-primary-container text-[18px]">done</span>
         <span>Endereço copiado!</span>
       </div>
@@ -202,20 +216,20 @@ export default function B2DetalheDaParada() {
       <div className="fixed bottom-[72px] inset-x-0 z-40 bg-surface/90 backdrop-blur-md px-margin py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] flex flex-col gap-2 max-w-lg mx-auto">
         <div className="flex items-center gap-space-sm">
           {/* High Priority Primary Action Button */}
-          <button className="flex-1 h-[54px] rounded-full bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all" id="btnConfirmDelivery">
+          <button className="flex-1 h-[54px] rounded-full bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-md active:scale-98 transition-all" id="btnConfirmDelivery" onClick={() => navigate(`/rota/parada/${stopId}/entrega`)} type="button">
             <span className="material-symbols-outlined text-[24px]">task_alt</span>
             <span>Confirmar Entrega</span>
           </button>
           {/* Danger Exception Action Trigger */}
-          <button aria-label="Registrar ocorrência ou insucesso" className="h-[54px] px-5 rounded-full bg-error/10 text-error hover:bg-error-container active:scale-98 transition-all font-label-md text-label-md flex items-center justify-center gap-1.5 shrink-0" id="btnReportIssue">
+          <button aria-label="Registrar ocorrência ou insucesso" className="h-[54px] px-5 rounded-full bg-error/10 text-error hover:bg-error-container active:scale-98 transition-all font-label-md text-label-md flex items-center justify-center gap-1.5 shrink-0" id="btnReportIssue" onClick={() => navigate(`/rota/parada/${stopId}/falha`)} type="button">
             <span className="material-symbols-outlined text-[22px]">report_problem</span>
             <span className="hidden sm:inline">Ocorrência</span>
           </button>
         </div>
       </div>
     </div>
-  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><a aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" data-path="rota" href="#"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="historico" href="#"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="recibos" href="#"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="perfil" href="#"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a></div></nav>
+  </main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><Link aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" to="/rota"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/historico"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/recibos"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/perfil"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link></div></nav>
 </div>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }

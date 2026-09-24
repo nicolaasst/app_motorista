@@ -3,7 +3,7 @@ const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8787';
 const tokenKey = 'rotapro.accessToken';
 
 const jsonFetch = async (path, options = {}) => {
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
   const accessToken = localStorage.getItem(tokenKey);
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
   const response = await fetch(`${baseUrl}${path}`, { ...options, headers });

@@ -1,17 +1,33 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
-import PageRuntime from '../lib/PageRuntime.jsx';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext.jsx';
 
 export default function B4ConfirmarEntrega() {
+  const navigate = useNavigate();
+  const { stopId = 'stop-05' } = useParams();
+  const { confirmDelivery, showToast } = useApp();
+  const recipientRef = useRef(null);
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
+
+  const handleConfirm = async () => {
+    const recipient = recipientRef.current?.value?.trim();
+    if (!recipient) {
+      showToast('Informe o nome de quem recebeu.', 'warning');
+      return;
+    }
+    // A assinatura real (captura por canvas) e a foto real ainda não existem — ver Fase 5.
+    await confirmDelivery(stopId, { recipient, signature: recipient });
+    navigate('/rota');
+  };
   return (
-    <ScreenFrame screenId="b.4_confirmar_entrega"><PageRuntime screenId="b.4_confirmar_entrega">
+    <ScreenFrame screenId="b.4_confirmar_entrega">
       <div>
   <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl pt-safe"><div className="h-16 px-margin flex items-center justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div className="flex items-center gap-space-sm"><img alt="Logotipo RotaPro Driver" className="h-8 w-auto object-contain" src="/screens/logotipo_rotapro_driver.png" /><div className="flex flex-col"><span className="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">RotaPro</span><span className="font-headline-sm text-headline-sm text-on-surface leading-tight">Rota</span></div></div><div className="flex items-center gap-space-sm"><button aria-label="Notificações" className="relative w-11 h-11 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container transition-colors"><span className="material-symbols-outlined text-[24px]">notifications</span><span className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary-container text-on-primary font-label-sm text-[10px] ring-2 ring-surface">3</span></button><div className="relative flex items-center justify-center"><img alt="Profile" className="w-8 h-8 rounded-full object-cover ring-2 ring-primary/20" src="/screens/logotipo_rotapro_driver.png" /><span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-1 ring-surface" /></div></div></div></header><main className="flex-1 flex flex-col relative w-full pt-16 pb-24 bg-surface px-margin"><div className="flex flex-col w-full pb-8">
       {/* Sub-Header da Parada */}
       <div className="flex items-center justify-between mb-4 pt-1">
         <div className="flex items-center gap-3">
-          <button aria-label="Voltar para detalhe da parada" className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface active:scale-95 transition-transform shadow-sm" type="button">
+          <button aria-label="Voltar para detalhe da parada" className="w-11 h-11 rounded-full bg-surface-container flex items-center justify-center text-on-surface active:scale-95 transition-transform shadow-sm" onClick={() => navigate(-1)} type="button">
             <span className="material-symbols-outlined text-[24px]">arrow_back</span>
           </button>
           <div className="flex flex-col">
@@ -54,7 +70,7 @@ export default function B4ConfirmarEntrega() {
             <label className="block font-label-sm text-label-sm text-secondary mb-1.5">Nome Completo de Quem Recebeu</label>
             <div className="flex items-center bg-surface-container-low rounded-full px-4 h-13 shadow-inner">
               <span className="material-symbols-outlined text-secondary mr-2.5 text-[20px]">person</span>
-              <input className="w-full bg-transparent font-body-lg text-body-lg text-on-surface focus:outline-none" placeholder="Nome do recebedor" type="text" defaultValue="Roberto Silveira" />
+              <input className="w-full bg-transparent font-body-lg text-body-lg text-on-surface focus:outline-none" placeholder="Nome do recebedor" ref={recipientRef} type="text" defaultValue="Roberto Silveira" />
             </div>
           </div>
           <div>
@@ -170,7 +186,7 @@ export default function B4ConfirmarEntrega() {
       </div>
       {/* Bloco Operacional de Confirmação e Transmissão */}
       <div className="flex flex-col gap-3">
-        <button className="w-full h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center gap-3 font-label-lg text-label-lg shadow-lg shadow-primary/25 active:bg-primary active:scale-[0.99] transition-all" type="button">
+        <button className="w-full h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center gap-3 font-label-lg text-label-lg shadow-lg shadow-primary/25 active:bg-primary active:scale-[0.99] transition-all" id="btn-confirm-submit" onClick={handleConfirm} type="button">
           <span className="material-symbols-outlined text-[24px]">task_alt</span>
           <span>Concluir e Transmitir Entrega</span>
           <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
@@ -183,8 +199,8 @@ export default function B4ConfirmarEntrega() {
           <span className="font-label-sm text-label-sm">Sincronização imediata em nuvem ativa</span>
         </div>
       </div>
-    </div></main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><a aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" data-path="rota" href="#"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="historico" href="#"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="recibos" href="#"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a><a className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" data-path="perfil" href="#"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></a></div></nav>
+    </div></main><nav className="fixed bottom-0 inset-x-0 z-50 pb-safe bg-[#131313] shadow-[0_-4px_16px_rgba(0,0,0,0.22)]" data-active-classes="text-primary-container font-label-md"><div className="flex justify-around items-center h-[72px] px-space-xs"><Link aria-current="page" className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] transition-colors group text-primary-container font-label-md" to="/rota"><span className="material-symbols-outlined text-[24px]">local_shipping</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Rota</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/historico"><span className="material-symbols-outlined text-[24px]">history</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Histórico</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/recibos"><span className="material-symbols-outlined text-[24px]">receipt_long</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Recibos</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link><Link className="flex flex-col items-center justify-center flex-1 h-full min-w-[44px] text-secondary-fixed-dim hover:text-surface transition-colors group" to="/perfil"><span className="material-symbols-outlined text-[24px]">account_circle</span><span className="font-label-sm text-label-sm mt-0.5 tracking-tight">Perfil</span><span className="w-1.5 h-1.5 rounded-full bg-[#88EF1B] mt-1 opacity-0 group-[.active]:opacity-100 transition-opacity" /></Link></div></nav>
 </div>
-    </PageRuntime></ScreenFrame>
+    </ScreenFrame>
   );
 }
