@@ -13,10 +13,10 @@ const A2EsqueciMinhaSenhaOtp = lazy(
   () => import('./features/auth/pages/A2EsqueciMinhaSenhaOtp.tsx'),
 );
 const A3ChecklistDoVeiculo = lazy(() => import('./features/auth/pages/A3ChecklistDoVeiculo.tsx'));
-const B1RotaDoDiaHome = lazy(() => import('./pages/B1RotaDoDiaHome.jsx'));
-const B2DetalheDaParada = lazy(() => import('./pages/B2DetalheDaParada.jsx'));
-const B3NavegaOAtAParada = lazy(() => import('./pages/B3NavegaOAtAParada.jsx'));
-const B4ConfirmarEntrega = lazy(() => import('./pages/B4ConfirmarEntrega.jsx'));
+const B1RotaDoDiaHome = lazy(() => import('./features/rota/pages/B1RotaDoDiaHome.tsx'));
+const B2DetalheDaParada = lazy(() => import('./features/rota/pages/B2DetalheDaParada.tsx'));
+const B3NavegarAteAParada = lazy(() => import('./features/rota/pages/B3NavegarAteAParada.tsx'));
+const B4ConfirmarEntrega = lazy(() => import('./features/rota/pages/B4ConfirmarEntrega.tsx'));
 const B5RegistrarFalha = lazy(() => import('./pages/B5RegistrarFalha.jsx'));
 const B6FimDeRota = lazy(() => import('./pages/B6FimDeRota.jsx'));
 const B7ChecklistDeRetorno = lazy(() => import('./pages/B7ChecklistDeRetorno.jsx'));
@@ -144,7 +144,7 @@ const router = createBrowserRouter([
           { path: '/checklist', element: <A3ChecklistDoVeiculo /> },
           { path: '/rota', element: <B1RotaDoDiaHome /> },
           { path: '/rota/parada/:stopId', element: <B2DetalheDaParada /> },
-          { path: '/rota/parada/:stopId/navegar', element: <B3NavegaOAtAParada /> },
+          { path: '/rota/parada/:stopId/navegar', element: <B3NavegarAteAParada /> },
           { path: '/rota/parada/:stopId/entrega', element: <B4ConfirmarEntrega /> },
           { path: '/rota/parada/:stopId/falha', element: <B5RegistrarFalha /> },
           { path: '/rota/fim', element: <B6FimDeRota /> },

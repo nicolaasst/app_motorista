@@ -85,6 +85,7 @@ export default function PhotoCapture({
       </button>
       <input
         accept="image/*"
+        aria-label={label}
         capture="environment"
         className="sr-only"
         onChange={handleChange}
