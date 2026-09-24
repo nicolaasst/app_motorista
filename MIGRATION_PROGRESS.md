@@ -13,25 +13,25 @@ decisão externa — ver OPEN_QUESTIONS).
 
 ## As 17 telas/fluxos (16 existentes + emergência da Fase 6.5)
 
-| id  | novo nome (ASCII)                         | rota                           | status | typecheck | lint | test | visual             | a11y | backend                                                            | observações                                                    |
-| --- | ----------------------------------------- | ------------------------------ | ------ | --------- | ---- | ---- | ------------------ | ---- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
-| A1  | LoginDoMotorista                          | `/`                            | todo   | todo      | todo | todo | baseline capturado | todo | login Fastify (token inseguro — Fase 7)                            | biometria só no app nativo (Fase 9)                            |
-| A2  | EsqueciMinhaSenhaOtp                      | `/recuperar`                   | todo   | todo      | todo | todo | baseline capturado | todo | OTP fixo `123456` (dev only)                                       | —                                                              |
-| A3  | ChecklistDoVeiculo                        | `/checklist`                   | todo   | todo      | todo | todo | baseline capturado | todo | sem conceito de item crítico ainda                                 | Fase 5 adiciona bloqueio por item crítico                      |
-| B1  | RotaDoDiaHome                             | `/rota`                        | todo   | todo      | todo | todo | baseline capturado | todo | rota do dia via `/v1/routes/today`                                 | —                                                              |
-| B2  | DetalheDaParada                           | `/rota/parada/:stopId`         | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| B3  | NavegacaoAteAParada                       | `/rota/parada/:stopId/navegar` | todo   | todo      | todo | todo | baseline capturado | todo | sem geolocalização real ainda                                      | Fase 5                                                         |
-| B4  | ConfirmarEntrega                          | `/rota/parada/:stopId/entrega` | todo   | todo      | todo | todo | baseline capturado | todo | stepper mostra assinatura/foto sempre "concluído" (bug confirmado) | Fase 5 corrige                                                 |
-| B5  | RegistrarFalha                            | `/rota/parada/:stopId/falha`   | todo   | todo      | todo | todo | baseline capturado | todo | sem foto obrigatória real                                          | Fase 5                                                         |
-| B6  | FimDeRota                                 | `/rota/fim`                    | todo   | todo      | todo | todo | baseline capturado | todo | sem gatilho de navegação a partir de B1 no dispatcher atual        | corrigir junto da Fase 3                                       |
-| B7  | ChecklistDeRetorno                        | `/rota/retorno`                | todo   | todo      | todo | todo | baseline capturado | todo | mesmo bug de item crítico que A3                                   | Fase 5                                                         |
-| C1  | HistoricoDeRotas                          | `/historico`                   | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| C2  | DetalheDeRotaConcluida                    | `/historico/:routeId`          | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| D1  | Recibos                                   | `/recibos`                     | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| D2  | DetalheDoReciboComAssinatura              | `/recibos/:receiptId`          | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| E1  | PerfilDoMotorista                         | `/perfil`                      | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                  | —                                                              |
-| E2  | CentralDeSuporteEAjuda                    | `/suporte`                     | todo   | todo      | todo | todo | baseline capturado | todo | linha direta de suporte só — emergência é fluxo separado (E3)      | —                                                              |
-| E3  | AcionamentoDeEmergencia (NOVA — Fase 6.5) | a definir                      | todo   | todo      | todo | todo | n/a (tela nova)    | todo | evento de domínio `emergencia.acionada` a criar                    | protocolo completo é pendência de produto — ver OPEN_QUESTIONS |
+| id  | novo nome (ASCII)                         | rota                           | status | typecheck | lint | test | visual             | a11y | backend                                                                                                   | observações                                                    |
+| --- | ----------------------------------------- | ------------------------------ | ------ | --------- | ---- | ---- | ------------------ | ---- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| A1  | LoginDoMotorista                          | `/`                            | todo   | todo      | todo | todo | baseline capturado | todo | login Fastify (token inseguro — Fase 7)                                                                   | biometria só no app nativo (Fase 9)                            |
+| A2  | EsqueciMinhaSenhaOtp                      | `/recuperar`                   | todo   | todo      | todo | todo | baseline capturado | todo | OTP fixo `123456` (dev only)                                                                              | —                                                              |
+| A3  | ChecklistDoVeiculo                        | `/checklist`                   | todo   | todo      | todo | todo | baseline capturado | todo | sem conceito de item crítico ainda                                                                        | Fase 5 adiciona bloqueio por item crítico                      |
+| B1  | RotaDoDiaHome                             | `/rota`                        | todo   | todo      | todo | todo | baseline capturado | todo | rota do dia via `/v1/routes/today`                                                                        | —                                                              |
+| B2  | DetalheDaParada                           | `/rota/parada/:stopId`         | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| B3  | NavegacaoAteAParada                       | `/rota/parada/:stopId/navegar` | todo   | todo      | todo | todo | baseline capturado | todo | geolocalização real na chegada + geofence (Fase 5 lote 2); ainda `.jsx`, mapa/telemetria seguem estáticos | Fase 6 (migração)                                              |
+| B4  | ConfirmarEntrega                          | `/rota/parada/:stopId/entrega` | todo   | todo      | todo | todo | baseline capturado | todo | assinatura/foto/geo reais, stepper honesto (Fase 5 lote 2); ainda `.jsx`                                  | Fase 6 (migração)                                              |
+| B5  | RegistrarFalha                            | `/rota/parada/:stopId/falha`   | todo   | todo      | todo | todo | baseline capturado | todo | foto obrigatória real para avaria + geo real (Fase 5 lote 2); ainda `.jsx`                                | Fase 6 (migração)                                              |
+| B6  | FimDeRota                                 | `/rota/fim`                    | todo   | todo      | todo | todo | baseline capturado | todo | sem gatilho de navegação a partir de B1 no dispatcher atual                                               | corrigir junto da Fase 3                                       |
+| B7  | ChecklistDeRetorno                        | `/rota/retorno`                | todo   | todo      | todo | todo | baseline capturado | todo | mesmo bug de item crítico que A3                                                                          | Fase 5                                                         |
+| C1  | HistoricoDeRotas                          | `/historico`                   | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| C2  | DetalheDeRotaConcluida                    | `/historico/:routeId`          | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| D1  | Recibos                                   | `/recibos`                     | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| D2  | DetalheDoReciboComAssinatura              | `/recibos/:receiptId`          | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| E1  | PerfilDoMotorista                         | `/perfil`                      | todo   | todo      | todo | todo | baseline capturado | todo | —                                                                                                         | —                                                              |
+| E2  | CentralDeSuporteEAjuda                    | `/suporte`                     | todo   | todo      | todo | todo | baseline capturado | todo | linha direta de suporte só — emergência é fluxo separado (E3)                                             | —                                                              |
+| E3  | AcionamentoDeEmergencia (NOVA — Fase 6.5) | a definir                      | todo   | todo      | todo | todo | n/a (tela nova)    | todo | evento de domínio `emergencia.acionada` a criar                                                           | protocolo completo é pendência de produto — ver OPEN_QUESTIONS |
 
 ## Infraestrutura e fases transversais
 
@@ -54,7 +54,7 @@ decisão externa — ver OPEN_QUESTIONS).
 | `/dev` fora de produção, `*` → 404 real              | done          | `src/App.jsx` reescrito com `createBrowserRouter` + `lazy()` por rota + `errorElement`. `/dev` e `/logo` só existem quando `import.meta.env.DEV` (excluídos fisicamente do array de rotas em produção — confirmado: bundle de produção não referencia essas rotas). `*` renderiza um componente `NotFound` real (não redireciona mais para `/`). Fluxo completo testado ponta a ponta com Playwright (login→checklist→rota→parada→entrega→histórico→recibos→suporte→ticket→logout→404→/dev), 0 erros de página.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Design system componentizado (`components/ui`)       | done          | `Icon.tsx`, `AppHeader.tsx`, `BottomNav.tsx` extraídos com testes (13 testes, incl. `axe()`). `docs/DESIGN_TOKENS.md` registra o que foi extraído e por que `StopCard`/botão primário/badge de status **não** foram (variação real de estilo entre telas tornaria a unificação uma mudança visual, decisão explícita). Rota `/design-system` (só DEV) mostra os tokens ao vivo. Adoção nas 16 telas é Fase 6 — extrair sem adotar não muda nenhuma tela (0% de regressão visual confirmada). AppHeader corrige de passagem 2 bugs reais das 14 cópias inline: contador de notificações sempre "3" hardcoded (agora usa dado real) e botão de notificação 100% decorativo (agora chama `markNotificationsRead()`).                                                                                                                                                                                                                                                                                                                                                                                  |
 | Offline-first (IndexedDB + outbox)                   | done (lote 1) | `src/lib/offline/` (`types.ts`, `indexedDbStore.ts` via `idb`, `outboxSync.ts`). Sessão, rota, checklists, recibos, histórico e notificações persistem em IndexedDB e sobrevivem a recarregar (`AppProvider` hidrata no mount; `ProtectedRoutes` espera a hidratação antes de decidir — bug real encontrado e corrigido: sem isso, um reload sempre redirecionava para `/` mesmo com sessão salva). `confirmDelivery`/`registerFailure`/`updateChecklist` gravam local primeiro e enfileiram; nunca marcam "sincronizado" sem confirmação do servidor (`outboxSync` só remove o item da fila após o `send` resolver; erro mantém o item com `status: 'erro'` e a mesma `idempotencyKey` para retry). 13 testes automatizados (IndexedDB via `fake-indexeddb`, sync engine com store fake) + verificado ao vivo com Playwright (entrega confirmada → outbox chega a 0 itens). Retry automático ao reconectar (`window.addEventListener('online', ...)`) e backoff exponencial (2^n, teto 60s) — não testado offline de verdade (sandbox sem forma de simular perda de rede no Chromium controlado). |
-| Assinatura/foto/geo reais                            | todo          | Próximo lote da Fase 5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Assinatura/foto/geo reais                            | done (lote 2) | `src/components/ui/SignaturePad.tsx`, `src/components/ui/PhotoCapture.tsx`, `src/lib/device/geolocation.ts`, `src/lib/device/photo.ts`. Ver "Fase 5, lote 2" abaixo.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Checklist com item crítico bloqueando início de rota | done          | `src/lib/fixtures.js` define `critico: boolean` por item (`vehicleChecklistItems`/`returnChecklistItems` — lista conservadora, sem manual operacional disponível para confirmar a oficial, ver OPEN_QUESTIONS). `src/lib/domain/checklist.ts` (`evaluateChecklist`, 5 testes) calcula `approved` = todos respondidos E nenhum item crítico reprovado. A3 (`btn-iniciar-turno`) e B7 (`btn-encerrar`) agora bloqueiam de verdade e mostram toast quando um item crítico é "Não" — verificado ao vivo (reprovar item crítico impede navegação para `/rota`; reprovar item não-crítico não bloqueia). A reprovação é enviada ao backend via `updateChecklist` → outbox → `POST /v1/checklists` (mesmo contrato de sempre), não é só uma trava de cliente.                                                                                                                                                                                                                                                                                                                                             |
 | Fluxo de emergência (E3)                             | todo          | Fase 6.5                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Token HMAC assinado + verificado no Fastify          | todo          | **Fase 7 — falha de segurança confirmada, ainda não corrigida**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -148,9 +148,98 @@ corretamente permanece na tela com um toast, em vez de encerrar uma rota
 com paradas pendentes. Ao encerrar com sucesso, `vehicleChecklist` e
 `returnChecklist` são zerados para o próximo turno.
 
-**O que ainda não existe (próximo lote da Fase 5):** assinatura real
-(canvas), foto real (captura de câmera/galeria + `uploads/presign`),
-geolocalização real (`navigator.geolocation`), geofence aplicado de fato
-na confirmação de chegada/entrega, e o stepper de `B4ConfirmarEntrega`
-ainda mostra "Assinatura Digital"/"Foto Comprovante" sempre concluídos
-(bug confirmado na Fase 0, ainda não corrigido).
+**O que ainda não existe (endereçado no lote 2, abaixo):** assinatura real
+(canvas), foto real (captura de câmera/galeria + compressão), geolocalização
+real (`navigator.geolocation`), geofence aplicado de fato na confirmação de
+chegada/entrega, e o stepper de `B4ConfirmarEntrega` ainda mostra
+"Assinatura Digital"/"Foto Comprovante" sempre concluídos (bug confirmado na
+Fase 0, ainda não corrigido).
+
+## Fase 5, lote 2 — assinatura, foto e geolocalização reais
+
+**Assinatura real** (Fase 5, item explícito): `src/components/ui/SignaturePad.tsx`
+captura o traço com Pointer Events (funciona com dedo, mouse e caneta
+stylus) sobre um `<canvas>` e exporta PNG via `toDataURL`. Antes desta
+fase, `B4ConfirmarEntrega` renderizava um traço SVG estático fixo — a
+"assinatura" nunca existiu de fato, era só o nome do recebedor reaproveitado
+como string. Agora o stepper "Assinatura Digital" só mostra `check_circle`
+quando um traço real foi desenhado (verificado ao vivo com Playwright:
+sem desenhar, o botão de confirmar bloqueia com toast "Colete a assinatura
+de quem recebeu").
+
+**Foto real** (Fase 5, item explícito): `src/components/ui/PhotoCapture.tsx`
+usa `<input type="file" accept="image/*" capture="environment">` (abre a
+câmera traseira em celular; arquivo/galeria em desktop) e
+`src/lib/device/photo.ts` (`compressImageFile`) comprime no cliente via
+`createImageBitmap` + canvas antes de enviar (nunca envia o arquivo bruto
+de uma câmera moderna, que pode ter vários MB). Usada em `B4ConfirmarEntrega`
+(opcional) e `B5RegistrarFalha` (condicionalmente obrigatória — ver abaixo).
+
+**Geolocalização real + geofence aplicado de fato** (Fase 5, itens
+explícitos): `src/lib/device/geolocation.ts` (`captureCurrentPosition`)
+envolve `navigator.geolocation.getCurrentPosition` em uma Promise tipada,
+sem fallback simulado — se o navegador negar ou não suportar, o erro é
+tipado (`permission-denied`/`unavailable`/`timeout`/`unsupported`) e
+tratado na UI, nunca mascarado com uma coordenada falsa. Aplicado em:
+
+- `B3NavegaOAtAParada`: ao tocar "Cheguei no Local da Entrega", captura a
+  posição real, compara com a coordenada esperada da parada
+  (`route.stops[].location`, de `src/lib/fixtures.js`) via
+  `evaluateGeofence` (`src/lib/domain/geofence.ts`, tolerância padrão
+  150m — ainda pendente de confirmação do produto, ver
+  `docs/OPEN_QUESTIONS.md`) e só então chama `confirmArrival` (nova função
+  no `AppContext`, enfileira `operation: 'arrive', phase: 'arrived'`) antes
+  de navegar para `B4`. Fora do raio esperado, mostra toast de aviso mas
+  não bloqueia (a entrega pode legitimamente ocorrer fora do geofence —
+  ex.: cliente saiu para receber na rua).
+- `B4ConfirmarEntrega`: mesma captura + `evaluateGeofence` contra
+  `route.stops.find(...).location` (antes: coordenada de `stop-05`
+  hardcoded no componente — corrigido para ler da rota real, funciona para
+  qualquer parada agora). Badge "Geo-validado"/"Fora do raio
+  esperado"/"Sem geo-validação" no card da foto reflete o resultado real.
+- `B5RegistrarFalha`: mesma captura, mostrada como "GPS ATIVO"/"GPS
+  INDISPONÍVEL" no cabeçalho da seção de evidência (antes: rótulo
+  hardcoded "GPS ATIVO", sempre, mesmo sem qualquer captura real).
+
+**Foto obrigatória em `B5RegistrarFalha`** (Fase 5, item explícito —
+"foto obrigatória em insucesso"): implementada de forma consistente com o
+próprio design da tela, que já trazia um selo "Foto Obrigatória" apenas no
+motivo "Avaria ou Dano no Produto" — não foi inventada uma regra mais ampla
+sem sinal de produto para isso. `PHOTO_REQUIRED_REASONS` em
+`B5RegistrarFalha.jsx` bloqueia o envio (toast + `disabled`) quando o
+motivo é avaria e nenhuma foto foi anexada; para os demais motivos a foto
+continua opcional. Verificado ao vivo com Playwright: (1) motivo "Avaria"
+sem foto → bloqueado; (2) motivo "Cliente Ausente" sem foto → envia
+normalmente; (3) motivo "Avaria" com foto real anexada (upload de arquivo
+simulado, passando pela compressão real) → envia normalmente.
+
+**Payload de foto/localização no backend**: `registerFailure`/`confirmDelivery`
+já enfileiravam qualquer campo extra no payload (`{stopId, ...delivery}` /
+`{stopId, ...occurrence}`) e as rotas Fastify (`/v1/stops/:id/deliver`,
+`/v1/stops/:id/fail`) gravam o corpo inteiro via `Object.assign` sem
+schema restritivo — `photo` (data URL comprimido) e `location`
+(`{lat, lng}`) passam a ser persistidos nesses registros sem exigir
+nenhuma mudança de schema. Persistir a foto como um data URL inteiro (em
+vez de um arquivo separado com upload assinado) é uma simplificação
+deliberada para este lote — ver `docs/OPEN_QUESTIONS.md`; não é o
+formato final recomendado para produção (custo de storage/payload), mas é
+honesto (a foto real é enviada e persistida, não descartada).
+
+**Regressão visual**: as 16 telas seguem dentro do limiar de 2%
+(`scripts/visual-compare.mjs`). `B4ConfirmarEntrega` tem `diffRatio` de
+1.2% — esperado e documentado: o traço de assinatura estático fixo do
+mock foi substituído por um canvas real vazio no estado inicial (a
+mudança que a própria Fase 5 pede — parar de fingir um estado "concluído"
+que nunca existiu). `B3`/`B5` continuam com `diffRatio: 0` no screenshot
+de viewport único (a seção de evidência fotográfica de `B5` fica abaixo
+da dobra em 390×844, então a mudança não aparece nesse recorte —
+verificado como correta separadamente via Playwright ao vivo, descrito
+acima).
+
+**O que ainda não existe:** nenhuma tela trata explicitamente os 4 estados
+de dados (loading/vazio/erro/sucesso) de forma sistemática — decisão
+consciente de adiar para a Fase 6 (migração tela por tela), onde cada tela
+passa a consumir dados reais de fato em vez de fixtures estáticas; tratar
+os 4 estados antes disso seria prematuro. Upload de foto/assinatura como
+arquivo separado com URL assinada (em vez de data URL embutido) fica para
+quando o backend real (Fase 8, Supabase Storage) existir.

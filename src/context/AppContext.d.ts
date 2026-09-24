@@ -39,6 +39,7 @@ export interface Stop {
   signature?: string;
   failure?: { reason: string; notes: string };
   syncStatus?: 'pendente' | 'sincronizado' | 'erro' | null;
+  arrivalLocation?: GeoPoint;
 }
 
 export interface Route {
@@ -122,6 +123,7 @@ export interface AppContextValue {
     metadata?: Record<string, unknown>,
   ) => Promise<boolean>;
   startNavigation: (stopId: string) => Promise<void>;
+  confirmArrival: (stopId: string, location?: GeoPoint) => Promise<void>;
   confirmDelivery: (
     stopId: string,
     delivery: { recipient: string; signature: string; photo?: string; location?: GeoPoint },

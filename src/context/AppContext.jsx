@@ -117,6 +117,11 @@ export function AppProvider({ children }) {
 
   const startNavigation = async (stopId) => { setRoute((current) => ({ ...current, stops: current.stops.map((stop) => stop.id === stopId && ['pending', 'navigating'].includes(stop.status) ? { ...stop, status: 'navigating' } : stop) })); await enqueueAndSync('arrive', { stopId, phase: 'navigation' }); };
 
+  const confirmArrival = async (stopId, location) => {
+    setRoute((current) => ({ ...current, stops: current.stops.map((stop) => stop.id === stopId ? { ...stop, arrivalLocation: location } : stop) }));
+    await enqueueAndSync('arrive', { stopId, phase: 'arrived', location });
+  };
+
   const confirmDelivery = async (stopId, delivery) => {
     const stop = route.stops.find((item) => item.id === stopId);
     if (!stop) return false;
@@ -165,7 +170,7 @@ export function AppProvider({ children }) {
 
   const createTicket = async (payload) => { if (apiMode === 'http') await api.createTicket(payload); showToast('Chamado enviado para análise.'); return true; };
 
-  const value = useMemo(() => ({ driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, isAuthenticated: Boolean(driver), apiMode, hydrated, login, logout, updateChecklist, startNavigation, confirmDelivery, registerFailure, finishRoute, markNotificationsRead, createTicket, showToast }), [driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, hydrated]);
+  const value = useMemo(() => ({ driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, isAuthenticated: Boolean(driver), apiMode, hydrated, login, logout, updateChecklist, startNavigation, confirmArrival, confirmDelivery, registerFailure, finishRoute, markNotificationsRead, createTicket, showToast }), [driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, hydrated]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 export function useApp() { const context = useContext(AppContext); if (!context) throw new Error('useApp precisa ser usado dentro de AppProvider'); return context; }

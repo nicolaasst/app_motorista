@@ -127,3 +127,27 @@ regressão visual (`scripts/visual-compare.mjs`) continua válida porque a
 mesma limitação se aplica identicamente ao baseline e às capturas futuras,
 desde que feitas no mesmo ambiente sem rede externa liberada para o
 navegador de teste.
+
+## 9. Armazenamento de foto/assinatura como data URL embutido (Fase 5, lote 2)
+
+Foto (comprovante de entrega, evidência de falha) e assinatura são
+capturadas de verdade (canvas real, `<input type="file" capture>` real,
+compressão real no cliente — ver `MIGRATION_PROGRESS.md`, "Fase 5, lote
+2") mas hoje são persistidas como `data:` URL (base64) embutido no próprio
+registro da parada/recibo, tanto no modo mock quanto no backend Fastify
+atual (`Object.assign` no corpo da requisição, sem upload separado). Isso é
+honesto — a foto real é capturada e enviada, nada é fingido — mas não é o
+formato recomendado para produção: payloads maiores, sem CDN/cache, sem
+limite de tamanho aplicado além da compressão no cliente. O formato certo
+(upload para storage com URL assinada, ex. Supabase Storage) depende do
+backend real da Fase 8, fora do escopo desta sessão. Revisitar quando a
+Fase 8 for retomada.
+
+## 10. Tolerância de geofence (150m) — pendente confirmação do produto
+
+**Resposta do usuário (2026-09-24):** "ainda não" — mantido o valor
+conservador padrão (`DEFAULT_GEOFENCE_TOLERANCE_METERS = 150` em
+`src/lib/domain/geofence.ts`), agora efetivamente aplicado na chegada
+(`B3NavegaOAtAParada`) e na confirmação de entrega (`B4ConfirmarEntrega`)
+como aviso não-bloqueante (o motorista pode confirmar mesmo fora do raio,
+com toast de alerta). Revisitar o valor quando o usuário decidir.

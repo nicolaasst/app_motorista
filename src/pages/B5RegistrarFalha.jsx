@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import PhotoCapture from '../components/ui/PhotoCapture.tsx';
+import { captureCurrentPosition, GeolocationCaptureError } from '../lib/device/geolocation.ts';
 
 const FAILURE_REASON_LABELS = {
   cliente_ausente: 'Cliente Ausente / Fechado',
@@ -12,24 +14,63 @@ const FAILURE_REASON_LABELS = {
   outro_motivo: 'Outro Motivo Operacional',
 };
 
+// Foto obrigatória apenas para avaria/dano no produto, seguindo o próprio
+// selo "Foto Obrigatória" já presente no design desta tela.
+const PHOTO_REQUIRED_REASONS = new Set(['avaria_produto']);
+
 export default function B5RegistrarFalha() {
   const navigate = useNavigate();
   const { stopId = 'stop-05' } = useParams();
   const { registerFailure, showToast } = useApp();
   const reasonContainerRef = useRef(null);
   const notesRef = useRef(null);
+  const [selectedReason, setSelectedReason] = useState('cliente_ausente');
+  const [photo, setPhoto] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [geoStatus, setGeoStatus] = useState('capturing');
+  const [submitting, setSubmitting] = useState(false);
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    captureCurrentPosition()
+      .then((captured) => {
+        if (!cancelled) {
+          setLocation(captured.point);
+          setGeoStatus('ok');
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setGeoStatus(error instanceof GeolocationCaptureError ? error.reason : 'unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const photoRequired = PHOTO_REQUIRED_REASONS.has(selectedReason);
 
   const handleSubmitFailure = async () => {
     const checked = reasonContainerRef.current?.querySelector('input[name="failure_reason"]:checked');
-    const reason = FAILURE_REASON_LABELS[checked?.value] || 'Ocorrência operacional';
+    const reasonKey = checked?.value;
+    const reason = FAILURE_REASON_LABELS[reasonKey] || 'Ocorrência operacional';
     const notes = notesRef.current?.value?.trim();
     if (!notes) {
       showToast('Descreva o ocorrido para registrar.', 'warning');
       return;
     }
-    await registerFailure(stopId, { reason, notes });
-    navigate('/rota');
+    if (PHOTO_REQUIRED_REASONS.has(reasonKey) && !photo) {
+      showToast('Anexe uma foto da avaria para registrar esta ocorrência.', 'warning');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await registerFailure(stopId, { reason, notes, photo: photo?.dataUrl, location: location || undefined });
+      navigate('/rota');
+    } finally {
+      setSubmitting(false);
+    }
   };
   return (
     <ScreenFrame screenId="b.5_registrar_falha">
@@ -85,7 +126,12 @@ export default function B5RegistrarFalha() {
           <span className="font-code-sm text-code-sm text-secondary">SELEÇÃO ÚNICA</span>
         </div>
         {/* Reason Cards Grid */}
-        <div className="flex flex-col gap-space-sm" id="reason-container" ref={reasonContainerRef}>
+        <div
+          className="flex flex-col gap-space-sm"
+          id="reason-container"
+          onChange={(event) => setSelectedReason(event.target.value)}
+          ref={reasonContainerRef}
+        >
           {/* Option 1: Selected by default */}
           <label className="reason-card relative flex items-start gap-space-md p-space-md rounded-DEFAULT bg-surface-container-lowest shadow-sm cursor-pointer transition-all active:scale-[0.99] group bg-surface-container-high/40">
             <input defaultChecked className="sr-only peer" name="failure_reason" type="radio" defaultValue="cliente_ausente" />
@@ -182,40 +228,55 @@ export default function B5RegistrarFalha() {
         <div className="flex items-center justify-between mb-space-sm">
           <div className="flex items-center gap-space-xs">
             <span className="material-symbols-outlined text-[20px] text-primary">add_a_photo</span>
-            <span className="font-label-md text-label-md text-on-surface">Evidência Fotográfica</span>
+            <span className="font-label-md text-label-md text-on-surface">
+              Evidência Fotográfica{photoRequired && <span className="text-error"> *</span>}
+            </span>
           </div>
-          <span className="font-code-sm text-code-sm text-primary font-bold">GPS ATIVO</span>
+          <span className={`font-code-sm text-code-sm font-bold ${geoStatus === 'ok' ? 'text-primary' : 'text-secondary'}`}>
+            {geoStatus === 'capturing' && 'GPS...'}
+            {geoStatus === 'ok' && 'GPS ATIVO'}
+            {geoStatus !== 'capturing' && geoStatus !== 'ok' && 'GPS INDISPONÍVEL'}
+          </span>
         </div>
-        {/* Evidence Cards Grid */}
-        <div className="grid grid-cols-2 gap-space-sm mb-space-sm">
-          {/* Photo Slot 1: Captured with Metadata */}
-          <div className="relative flex flex-col rounded-DEFAULT overflow-hidden bg-surface-container shadow-inner aspect-[4/3] group">
-            <img alt="Foto da ocorrência registrada" className="w-full h-full object-cover" data-alt="Close-up operational capture of a pharmacy metal security shutter closed during daytime business hours with official street number visible under bright outdoor sunlight" src="/screens/logotipo_rotapro_driver.png" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#131313]/90 via-transparent to-black/20 flex flex-col justify-between p-2 text-surface-container-lowest">
-              <div className="flex items-center justify-between">
-                <span className="px-1.5 py-0.5 rounded-full bg-primary font-code-sm text-[9px] font-bold">GEO OK</span>
-                <button aria-label="Remover imagem" className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white" type="button">
-                  <span className="material-symbols-outlined text-[14px]">close</span>
-                </button>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-code-sm text-[10px] text-primary-fixed truncate">-23.5505, -46.6333</span>
-                <span className="font-code-sm text-[9px] text-surface-container-highest">HOJE • 14:32:10</span>
+        {photoRequired && !photo && (
+          <p className="font-body-sm text-body-sm text-error mb-space-sm">Foto obrigatória para este motivo de falha.</p>
+        )}
+        {/* Evidence Card */}
+        <div className="mb-space-sm">
+          {photo ? (
+            <div className="relative flex flex-col rounded-DEFAULT overflow-hidden bg-surface-container shadow-inner aspect-[4/3] group">
+              <img alt="Foto da ocorrência registrada" className="w-full h-full object-cover" src={photo.dataUrl} />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#131313]/90 via-transparent to-black/20 flex flex-col justify-between p-2 text-surface-container-lowest">
+                <div className="flex items-center justify-between">
+                  <span className="px-1.5 py-0.5 rounded-full bg-primary font-code-sm text-[9px] font-bold">
+                    {location ? 'GEO OK' : 'SEM GEO'}
+                  </span>
+                  <button
+                    aria-label="Remover imagem"
+                    className="w-6 h-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white"
+                    onClick={() => setPhoto(null)}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-code-sm text-[10px] text-primary-fixed truncate">
+                    {location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : 'Coordenadas indisponíveis'}
+                  </span>
+                  <span className="font-code-sm text-[9px] text-surface-container-highest">
+                    {new Date().toLocaleDateString('pt-BR')} • {new Date().toLocaleTimeString('pt-BR')}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          {/* Photo Slot 2: Add additional action trigger */}
-          <button className="flex flex-col items-center justify-center rounded-DEFAULT bg-surface-container-low hover:bg-surface-container transition-colors aspect-[4/3] p-space-sm active:scale-95 text-center" type="button">
-            <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-sm mb-1.5">
-              <span className="material-symbols-outlined text-[22px]">photo_camera</span>
-            </div>
-            <span className="font-label-sm text-label-sm text-on-surface">Adicionar Foto</span>
-            <span className="font-body-sm text-[10px] text-secondary">Fachada ou avaria</span>
-          </button>
+          ) : (
+            <PhotoCapture hint="Fachada ou avaria" label="Adicionar Foto" onCapture={setPhoto} />
+          )}
         </div>
         <div className="flex items-center gap-space-xs text-secondary">
           <span className="material-symbols-outlined text-[16px] text-primary">verified</span>
-          <span className="font-body-sm text-body-sm text-[11px]">Carimbo temporal e coordenadas criptografadas na imagem.</span>
+          <span className="font-body-sm text-body-sm text-[11px]">Carimbo temporal e coordenadas capturados junto com a imagem.</span>
         </div>
       </section>
       {/* Prior Contact Protocol Log */}
@@ -267,7 +328,7 @@ export default function B5RegistrarFalha() {
       {/* Action Controls */}
       <div className="flex flex-col gap-space-sm w-full mt-space-xs">
         {/* Critical Danger Pill Action Button */}
-        <button className="w-full h-14 rounded-full bg-error text-on-error flex items-center justify-center gap-space-sm font-label-lg text-label-lg shadow-lg active:scale-95 transition-transform" id="btn-submit-failure" onClick={handleSubmitFailure} type="button">
+        <button className="w-full h-14 rounded-full bg-error text-on-error flex items-center justify-center gap-space-sm font-label-lg text-label-lg shadow-lg active:scale-95 transition-transform disabled:opacity-60" disabled={submitting} id="btn-submit-failure" onClick={handleSubmitFailure} type="button">
           <span className="material-symbols-outlined text-[22px]">cancel</span>
           <span>Confirmar Falha da Entrega</span>
         </button>

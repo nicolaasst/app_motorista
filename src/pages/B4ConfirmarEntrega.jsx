@@ -1,14 +1,38 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
+import SignaturePad from '../components/ui/SignaturePad.tsx';
+import PhotoCapture from '../components/ui/PhotoCapture.tsx';
+import { captureCurrentPosition, GeolocationCaptureError } from '../lib/device/geolocation.ts';
+import { evaluateGeofence } from '../lib/domain/geofence.ts';
 
 export default function B4ConfirmarEntrega() {
   const navigate = useNavigate();
   const { stopId = 'stop-05' } = useParams();
-  const { confirmDelivery, showToast } = useApp();
+  const { route, confirmDelivery, showToast } = useApp();
+  const expectedLocation = route.stops.find((stop) => stop.id === stopId)?.location;
   const recipientRef = useRef(null);
-  useEffect(() => { document.title = 'RotaPro Driver'; }, []);
+  const signaturePadRef = useRef(null);
+  const [signature, setSignature] = useState(null);
+  const [photo, setPhoto] = useState(null);
+  const [location, setLocation] = useState(null);
+  const [geoStatus, setGeoStatus] = useState('capturing');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    document.title = 'RotaPro Driver';
+    let cancelled = false;
+    captureCurrentPosition()
+      .then((captured) => { if (!cancelled) { setLocation(captured.point); setGeoStatus('ok'); } })
+      .catch((error) => {
+        if (cancelled) return;
+        setGeoStatus(error instanceof GeolocationCaptureError ? error.reason : 'unavailable');
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const geofence = location && expectedLocation ? evaluateGeofence(location, expectedLocation) : null;
 
   const handleConfirm = async () => {
     const recipient = recipientRef.current?.value?.trim();
@@ -16,9 +40,20 @@ export default function B4ConfirmarEntrega() {
       showToast('Informe o nome de quem recebeu.', 'warning');
       return;
     }
-    // A assinatura real (captura por canvas) e a foto real ainda não existem — ver Fase 5.
-    await confirmDelivery(stopId, { recipient, signature: recipient });
-    navigate('/rota');
+    if (!signature) {
+      showToast('Colete a assinatura de quem recebeu.', 'warning');
+      return;
+    }
+    if (geofence && !geofence.withinRange) {
+      showToast(`Você está a ${Math.round(geofence.distanceMeters)}m do endereço esperado. Confirmando mesmo assim.`, 'warning');
+    }
+    setSubmitting(true);
+    try {
+      await confirmDelivery(stopId, { recipient, signature, photo: photo?.dataUrl, location: location || undefined });
+      navigate('/rota');
+    } finally {
+      setSubmitting(false);
+    }
   };
   return (
     <ScreenFrame screenId="b.4_confirmar_entrega">
@@ -46,12 +81,20 @@ export default function B4ConfirmarEntrega() {
         <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-full bg-surface-container-lowest shadow-sm">
           <span className="w-5 h-5 rounded-full bg-primary-container text-on-primary font-code-sm text-code-sm flex items-center justify-center">1</span>
           <span className="font-label-sm text-label-sm text-on-surface">Assinatura Digital</span>
-          <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+          {signature ? (
+            <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+          ) : (
+            <span className="material-symbols-outlined text-on-surface-variant text-[16px]">radio_button_unchecked</span>
+          )}
         </div>
         <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-full bg-surface-container-lowest shadow-sm">
           <span className="w-5 h-5 rounded-full bg-primary-container text-on-primary font-code-sm text-code-sm flex items-center justify-center">2</span>
           <span className="font-label-sm text-label-sm text-on-surface">Foto Comprovante</span>
-          <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+          {photo ? (
+            <span className="material-symbols-outlined text-primary text-[16px]">check_circle</span>
+          ) : (
+            <span className="material-symbols-outlined text-on-surface-variant text-[16px]">radio_button_unchecked</span>
+          )}
         </div>
       </div>
       {/* Bloco 1: Identificação do Recebedor */}
@@ -104,32 +147,37 @@ export default function B4ConfirmarEntrega() {
             <span className="font-label-sm text-label-sm text-on-surface-variant">Biometria Ativa</span>
           </div>
         </div>
-        {/* Área de Captura com Traço Realista */}
+        {/* Área de Captura Real de Assinatura (Pointer Events sobre canvas) */}
         <div className="relative w-full h-44 bg-surface-container-low rounded-[20px] p-4 flex flex-col justify-between overflow-hidden shadow-inner">
-          {/* Traço de Assinatura Renderizado em SVG */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none p-4">
-            <svg className="w-full h-full text-inverse-surface opacity-95" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 320 120">
-              <path d="M 28 85 C 50 20, 68 15, 78 50 C 85 75, 95 85, 110 80 C 130 70, 125 35, 142 42 C 158 50, 160 88, 178 78 C 190 70, 205 65, 220 72 C 245 84, 275 60, 292 68" />
-              <path d="M 60 70 Q 130 92 230 75" strokeWidth="2" />
-              <path d="M 145 60 L 165 35" strokeWidth="2.2" />
-            </svg>
-          </div>
+          <SignaturePad
+            className="absolute inset-0"
+            height={176}
+            onChange={setSignature}
+            ref={signaturePadRef}
+            showOwnClearButton={false}
+          />
           {/* Top Tools Bar */}
           <div className="flex items-center justify-between z-10">
-            <span className="font-code-sm text-code-sm text-secondary tracking-tight">LAT: -23.5505 | LNG: -46.6333</span>
-            <button className="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-sm text-error hover:bg-error-container active:scale-95 transition-all" type="button">
+            <span className="font-code-sm text-code-sm text-secondary tracking-tight">
+              {geoStatus === 'capturing' && 'Obtendo localização…'}
+              {geoStatus === 'ok' && location && `LAT: ${location.lat.toFixed(4)} | LNG: ${location.lng.toFixed(4)}`}
+              {geoStatus !== 'capturing' && geoStatus !== 'ok' && 'Localização indisponível'}
+            </span>
+            <button className="flex items-center gap-1 bg-surface-container-lowest px-3 py-1.5 rounded-full shadow-sm text-error hover:bg-error-container active:scale-95 transition-all" onClick={() => signaturePadRef.current?.clear()} type="button">
               <span className="material-symbols-outlined text-[16px]">ink_eraser</span>
               <span className="font-label-sm text-label-sm">Limpar</span>
             </button>
           </div>
           {/* Base Guide Line */}
-          <div className="z-10 flex flex-col items-center">
-            <div className="w-full h-[1.5px] bg-secondary/30 mb-2" />
-            <div className="flex items-center gap-1.5 text-secondary">
-              <span className="material-symbols-outlined text-[14px]">edit</span>
-              <span className="font-label-sm text-label-sm">Assine com o dedo ou caneta stylus sobre a linha</span>
+          {!signature && (
+            <div className="z-10 flex flex-col items-center pointer-events-none">
+              <div className="w-full h-[1.5px] bg-secondary/30 mb-2" />
+              <div className="flex items-center gap-1.5 text-secondary">
+                <span className="material-symbols-outlined text-[14px]">edit</span>
+                <span className="font-label-sm text-label-sm">Assine com o dedo ou caneta stylus sobre a linha</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       {/* Bloco 3: Evidência Fotográfica do Pacote / Canhoto */}
@@ -143,33 +191,32 @@ export default function B4ConfirmarEntrega() {
           </div>
           <span className="font-code-md text-code-md text-primary bg-surface-container px-2.5 py-0.5 rounded-full">1/1</span>
         </div>
-        {/* Preview da Foto com Overlay Informativo */}
-        <div className="relative w-full h-52 rounded-[20px] overflow-hidden shadow-sm mb-3">
-          <img alt="Foto comprovante da entrega" className="w-full h-full object-cover" data-alt="Close up photograph of a neatly delivered pharmaceutical supply cardboard box on a pharmacy reception counter, featuring visible delivery invoice NF-e paper with official stamp signature, clear natural commercial lighting, realistic logistics driver operational photography, vibrant soft green highlights, high visual clarity" src="/screens/logotipo_rotapro_driver.png" />
-          {/* Badges sobrepostas na imagem */}
-          <div className="absolute top-3 left-3 bg-inverse-surface/85 backdrop-blur-md px-3 py-1 rounded-full text-surface flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-tertiary-fixed" />
-            <span className="font-label-sm text-label-sm">Foto 1 de 1 anexada</span>
-          </div>
-          <div className="absolute bottom-3 inset-x-3 bg-inverse-surface/80 backdrop-blur-md rounded-xl p-2.5 flex items-center justify-between text-surface">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary-fixed text-[18px]">verified</span>
-              <div className="flex flex-col">
-                <span className="font-label-sm text-label-sm text-surface leading-tight">Canhoto conferido</span>
-                <span className="font-code-sm text-code-sm text-secondary-fixed-dim">14:22:18 • Geo-validado</span>
-              </div>
+        {photo ? (
+          <div className="relative w-full h-52 rounded-[20px] overflow-hidden shadow-sm mb-3">
+            <img alt="Foto comprovante da entrega" className="w-full h-full object-cover" src={photo.dataUrl} />
+            <div className="absolute top-3 left-3 bg-inverse-surface/85 backdrop-blur-md px-3 py-1 rounded-full text-surface flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-tertiary-fixed" />
+              <span className="font-label-sm text-label-sm">Foto 1 de 1 anexada</span>
             </div>
-            <button className="bg-surface-container-lowest text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm shadow-sm active:scale-95 transition-transform flex items-center gap-1" type="button">
-              <span className="material-symbols-outlined text-[14px]">refresh</span>
-              Refazer
-            </button>
+            <div className="absolute bottom-3 inset-x-3 bg-inverse-surface/80 backdrop-blur-md rounded-xl p-2.5 flex items-center justify-between text-surface">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary-fixed text-[18px]">verified</span>
+                <div className="flex flex-col">
+                  <span className="font-label-sm text-label-sm text-surface leading-tight">Canhoto anexado</span>
+                  <span className="font-code-sm text-code-sm text-secondary-fixed-dim">
+                    {geofence?.withinRange ? 'Geo-validado' : geoStatus === 'ok' ? 'Fora do raio esperado' : 'Sem geo-validação'}
+                  </span>
+                </div>
+              </div>
+              <button className="bg-surface-container-lowest text-on-surface px-3 py-1 rounded-full font-label-sm text-label-sm shadow-sm active:scale-95 transition-transform flex items-center gap-1" onClick={() => setPhoto(null)} type="button">
+                <span className="material-symbols-outlined text-[14px]">refresh</span>
+                Refazer
+              </button>
+            </div>
           </div>
-        </div>
-        {/* Ação Secundária: Adicionar mais fotos */}
-        <button className="w-full py-3 rounded-full bg-surface-container hover:bg-surface-container-high text-on-surface flex items-center justify-center gap-2 font-label-md text-label-md active:scale-98 transition-all" type="button">
-          <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
-          Adicionar Outra Foto (Opcional)
-        </button>
+        ) : (
+          <PhotoCapture hint="Opcional" label="Adicionar Foto do Comprovante" onCapture={setPhoto} />
+        )}
       </div>
       {/* Bloco 4: Campo Opcional de Observações */}
       <div className="bg-surface-container-lowest rounded-[20px] p-5 shadow-sm mb-6">
@@ -186,7 +233,7 @@ export default function B4ConfirmarEntrega() {
       </div>
       {/* Bloco Operacional de Confirmação e Transmissão */}
       <div className="flex flex-col gap-3">
-        <button className="w-full h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center gap-3 font-label-lg text-label-lg shadow-lg shadow-primary/25 active:bg-primary active:scale-[0.99] transition-all" id="btn-confirm-submit" onClick={handleConfirm} type="button">
+        <button className="w-full h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center gap-3 font-label-lg text-label-lg shadow-lg shadow-primary/25 active:bg-primary active:scale-[0.99] transition-all disabled:opacity-60" disabled={submitting} id="btn-confirm-submit" onClick={handleConfirm} type="button">
           <span className="material-symbols-outlined text-[24px]">task_alt</span>
           <span>Concluir e Transmitir Entrega</span>
           <span className="material-symbols-outlined text-[20px]">arrow_forward</span>

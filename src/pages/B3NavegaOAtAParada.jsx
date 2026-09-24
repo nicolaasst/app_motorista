@@ -1,11 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useApp } from '../context/AppContext.jsx';
+import { captureCurrentPosition, GeolocationCaptureError } from '../lib/device/geolocation.ts';
+import { evaluateGeofence } from '../lib/domain/geofence.ts';
 
 export default function B3NavegaOAtAParada() {
   const navigate = useNavigate();
   const { stopId = 'stop-05' } = useParams();
+  const { route, confirmArrival, showToast } = useApp();
+  const [confirmingArrival, setConfirmingArrival] = useState(false);
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);
+
+  const handleArrival = async () => {
+    setConfirmingArrival(true);
+    try {
+      let location;
+      try {
+        const captured = await captureCurrentPosition();
+        location = captured.point;
+      } catch (error) {
+        const reason = error instanceof GeolocationCaptureError ? error.reason : 'unavailable';
+        showToast(reason === 'permission-denied' ? 'Permissão de localização negada. Chegada registrada sem geo.' : 'Não foi possível capturar sua localização. Chegada registrada sem geo.', 'warning');
+      }
+      if (location) {
+        const expectedLocation = route.stops.find((stop) => stop.id === stopId)?.location;
+        if (expectedLocation) {
+          const geofence = evaluateGeofence(location, expectedLocation);
+          if (!geofence.withinRange) {
+            showToast(`Você está a ${Math.round(geofence.distanceMeters)}m do endereço esperado.`, 'warning');
+          }
+        }
+      }
+      await confirmArrival(stopId, location);
+      navigate(`/rota/parada/${stopId}/entrega`);
+    } finally {
+      setConfirmingArrival(false);
+    }
+  };
   return (
     <ScreenFrame screenId="b.3_navega_o_at_a_parada">
       <div>
@@ -158,9 +190,9 @@ export default function B3NavegaOAtAParada() {
             </div>
           </div>
           {/* Heavy-Duty Operational Primary CTA Button (Glove-Friendly Touch Area) */}
-          <button className="w-full h-[60px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(0,176,0,0.38)] active:bg-primary transition-all active:scale-[0.98]" id="arrival-btn" onClick={() => navigate(`/rota/parada/${stopId}/entrega`)} type="button">
+          <button className="w-full h-[60px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(0,176,0,0.38)] active:bg-primary transition-all active:scale-[0.98] disabled:opacity-60" disabled={confirmingArrival} id="arrival-btn" onClick={handleArrival} type="button">
             <span className="material-symbols-outlined text-[26px]">pin_drop</span>
-            <span>Cheguei no Local da Entrega</span>
+            <span>{confirmingArrival ? 'Confirmando chegada...' : 'Cheguei no Local da Entrega'}</span>
           </button>
           {/* Waybill & Package Details Expand Trigger */}
           <button className="mt-2.5 py-1 flex items-center justify-center gap-1 text-on-surface-variant active:text-primary transition-colors" id="toggle-details-btn">
