@@ -73,19 +73,65 @@ reescritos na Fase 6 de qualquer forma — puro desperdício de revisão.
 quando, entre outras coisas, sai dos globs legados de `eslint.config.js` e
 `.prettierignore` e passa a cumprir as regras estritas sem rebaixamento.
 
+## ADR-004 — Adiar a extração física de `packages/core`/`apps/web` para o início da Fase 9 (Fase 2)
+
+**Contexto:** o prompt mestre desenha uma arquitetura alvo com
+`packages/core` (lógica de domínio pura) consumida por `apps/web` (este
+projeto) e `apps/mobile` (Expo, Fase 9), e explicitamente permite adiar essa
+extração: "Se o esforço de separar em packages/core antes da Fase 9 parecer
+prematuro, é aceitável adiar a extração para o início da Fase 9 — mas
+registre a decisão e não deixe lógica de negócio presa em componentes web".
+
+O usuário confirmou Expo para a Fase 9, mas também confirmou explicitamente
+que **esta sessão vai até a Fase 7** — a Fase 9 (app nativo) fica para uma
+retomada futura, fora deste escopo de trabalho.
+
+**Decisão:** não criar a estrutura física de monorepo (`packages/core/`,
+`apps/web/`, workspaces do npm) agora, porque não há um segundo consumidor
+(`apps/mobile`) nesta sessão para justificá-la — seria mover arquivos sem
+nenhum benefício imediato, e ainda geraria diffs grandes sem leitor real.
+Em vez disso, dentro do pacote único atual:
+
+- Lógica de domínio pura (máquina de estados da parada, regras de
+  checklist com item crítico, geofence, formatadores, tipos) vai para
+  `src/lib/domain/` — sem importar React, DOM ou APIs de browser
+  específicas, exatamente como `packages/core/domain` faria.
+- Cliente de API e contratos ficam em `src/lib/api/`.
+- Fila de saída offline e storage abstrato ficam em `src/lib/offline/`.
+- Páginas migradas na Fase 6 vão para `src/features/<dominio>/pages/`.
+- Componentes de design system vão para `src/components/ui/`.
+
+Essa organização é **mecanicamente equivalente** a `packages/core` — mover
+`src/lib/domain`, `src/lib/api` e `src/lib/offline` para um pacote separado
+quando a Fase 9 for retomada é uma operação de mover pastas e ajustar
+imports, não uma reescrita. Nenhuma lógica de negócio fica presa dentro de
+componentes React.
+
+**Custo de reverter esta decisão:** baixo — é literalmente mover diretórios
+e trocar `../lib/domain` por `@rotapro/core/domain` (ou equivalente) nos
+imports, quando `apps/mobile` existir de fato.
+
+## Decisões já resolvidas pelo usuário (2026-09-24)
+
+- **Expo vs. Capacitor:** Expo. (Fase 9, ainda não iniciada nesta sessão.)
+- **Bundle identifier:** `com.ngstransportes.ngsdriver`, nome de loja
+  "NGS Driver". Ver `docs/OPEN_QUESTIONS.md` item 6 sobre a pergunta em
+  aberto que isso levanta (rebrand completo vs. só o pacote de distribuição
+  — nenhum rebrand foi feito na UI até isso ser esclarecido).
+- **Acesso ao Supabase do TMS:** confirmado, mesmo projeto já acessível via
+  MCP. Fase 8 continua fora do escopo desta sessão (usuário pediu para
+  seguir só até a Fase 7).
+- **Contas de loja:** o usuário providencia antes da submissão final.
+
 ## Decisões ainda pendentes (não tomadas nesta sessão)
 
 As decisões abaixo têm ADR **pendente** porque dependem de confirmação do
 usuário antes de qualquer implementação, conforme as regras do prompt
 mestre. Ver `docs/OPEN_QUESTIONS.md` para o detalhe de cada bloqueio:
 
-- **ADR-00X — Expo vs. Capacitor** (Fase 9): bloqueado, aguardando decisão
-  do usuário.
-- **ADR-00X — Gerenciador de workspaces do monorepo** (Fase 2, npm
-  workspaces vs. pnpm): a extração de `packages/core` ainda não começou;
-  a escolha será registrada quando a Fase 2 iniciar.
-- **ADR-00X — Storage nativo (`expo-sqlite` vs. `MMKV`)** (Fase 9):
-  depende da decisão Expo vs. Capacitor.
+- **ADR-00X — Storage nativo (`expo-sqlite` vs. `MMKV`)** (Fase 9): Expo já
+  está decidido; esta escolha específica fica para quando a Fase 9 for
+  retomada (fora do escopo desta sessão).
 - **ADR-00X — Motor de OCR do canhoto** (Fase 5/9): pendência de produto,
   não decisão técnica isolada — ver `docs/OPEN_QUESTIONS.md` item 3.
 - **ADR-00X — Tolerância de geofence** (Fase 5): pendência de produto — ver

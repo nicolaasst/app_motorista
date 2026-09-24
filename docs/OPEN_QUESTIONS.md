@@ -69,44 +69,49 @@ implementado. O campo de leitura do canhoto permanece como texto manual +
 foto anexada (a foto real é capturada e enviada — isso não é simulado; só o
 reconhecimento automático de texto não existe ainda).
 
-## 4. Backend Supabase do TMS — acesso e escopo (Fase 8, BLOQUEADA)
+## 4. Backend Supabase do TMS — acesso e escopo (Fase 8, ainda não iniciada nesta sessão)
 
 O prompt mestre instrui não redesenhar `pedidos`/`viagens`/`motoristas` e
 apenas estender esse domínio com tabelas novas (`checklists_execucao`,
 `geolocalizacao_motorista`, `emergencias_acionadas`) e Edge Functions novas.
 
-**Bloqueio:** não há acesso, neste ambiente, a nenhum projeto Supabase do
-TMS, nem ao schema real de `pedidos`/`viagens`/`motoristas`, nem confirmação
-de que tal projeto já existe. Criar um projeto Supabase novo tem custo real
-recorrente — o prompt mestre exige confirmação explícita do usuário antes
-disso ("Pare e confirme comigo antes de: criar ou usar um projeto Supabase
-com custo real").
+**Resposta do usuário (2026-09-24):** o mesmo projeto Supabase do TMS já
+está acessível a esta sessão (via MCP Supabase). **Escopo desta sessão foi
+explicitamente limitado até a Fase 7** ("segue até a fase 7") — a Fase 8 em
+si (migrations, Edge Functions, cutover de auth) não foi executada aqui.
+Quando for retomada: confirmar o schema real de `pedidos`/`viagens`/
+`motoristas` antes de criar qualquer tabela nova, e não redesenhar o que já
+existe.
 
-**O que resolve isto:** o usuário fornecer (a) a URL/ref do projeto Supabase
-existente do TMS e credenciais de acesso (via MCP Supabase ou service role
-key em ambiente seguro), ou (b) confirmar explicitamente a criação de um
-projeto novo, ciente do custo.
+## 5. Expo vs. Capacitor (Fase 9, ainda não iniciada)
 
-## 5. Expo vs. Capacitor (Fase 9, BLOQUEADA)
+**Resposta do usuário (2026-09-24): Expo.** Confirmado — não é mais uma
+decisão em aberto. `apps/mobile` e o ADR formal (Fase 9) ficam para quando
+essa fase for retomada (fora do escopo desta sessão, que vai até a Fase 7).
 
-O prompt mestre pede ADR obrigatório e confirmação do usuário antes de
-qualquer código nativo. A recomendação técnica no próprio prompt é Expo
-(localização em segundo plano, biometria real, push nativo, câmera/OCR
-on-device, builds via EAS), com Capacitor como alternativa mais rápida e mais
-limitada. Nenhum código de `apps/mobile` foi criado até esta decisão ser
-confirmada.
+## 6. Bundle identifier / Application ID (Fase 10, ainda não iniciada)
 
-## 6. Bundle identifier / Application ID (Fase 10, BLOQUEADA)
+**Resposta do usuário (2026-09-24):** confirmado —
+**`com.ngstransportes.ngsdriver`**, nome do app **"NGS Driver"**.
 
-O prompt mestre cita `com.nexuslog.rotaprodriver` como exemplo, mas pede
-confirmação explícita do domínio reverso antes de fixar — é uma decisão que
-não muda depois de publicado nas lojas. Nenhum valor foi fixado no código.
+**Nova pergunta que isso levanta:** o produto neste repositório está
+inteiramente rotulado "RotaPro Driver" — logo (`LogotipoRotaproDriver.jsx`),
+título da página, `package.json`, README, splash/ícone ainda a criar na
+Fase 9/10. Não está claro se "NGS Driver" é (a) só o nome/pacote da
+distribuição nas lojas para um cliente chamado NGS Transportes, mantendo a
+marca "RotaPro Driver" como o produto/white-label em si, ou (b) um rebrand
+completo do produto para "NGS Driver" em todas as telas. Como a Fase 1-6
+tem paridade visual como requisito não-negociável, **nenhum rebrand foi
+feito silenciosamente** — o app continua "RotaPro Driver" em toda a UI até
+essa confirmação. O bundle identifier em si já está registrado para uso
+na Fase 9/10 quando chegar a hora.
 
-## 7. Submissão real às lojas (Fase 10, BLOQUEADA)
+## 7. Submissão real às lojas (Fase 10, ainda não iniciada)
 
-Requer conta de desenvolvedor Google Play / Apple Developer do usuário.
-Nenhuma submissão será feita nesta sessão nem preparada como se fosse
-automática — apenas os artefatos e instruções ficarão prontos.
+**Resposta do usuário (2026-09-24):** contas de desenvolvedor (Google Play
+Console / Apple Developer) serão providenciadas pelo usuário antes da
+submissão final — "será feito no final". Nenhuma ação necessária agora;
+revisitar quando a Fase 10 for retomada.
 
 ## 8. Fontes externas (Google Fonts) indisponíveis durante a captura de baseline
 
