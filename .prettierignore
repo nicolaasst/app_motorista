@@ -10,10 +10,11 @@ package-lock.json
 # serão movidos/reescritos tela a tela (ver docs/DECISIONS.md, ADR-003).
 # Cada arquivo sai desta lista quando migrado para features/<dominio>/pages.
 src/pages/
-src/lib/
-src/context/
+src/lib/ScreenFrame.jsx
+src/context/AppContext.jsx
 src/api/
 src/styles.css
 tailwind.config.js
 index.html
 server/
+!server/seed.js

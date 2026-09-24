@@ -17,11 +17,17 @@ export interface Driver {
   preferences?: Record<string, unknown>;
 }
 
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
 export interface Stop {
   id: string;
   number: number;
   customer: string;
   address: string;
+  location?: GeoPoint;
   window: string;
   volumes: number;
   invoice: string;
@@ -32,6 +38,7 @@ export interface Stop {
   recipient?: string;
   signature?: string;
   failure?: { reason: string; notes: string };
+  syncStatus?: 'pendente' | 'sincronizado' | 'erro' | null;
 }
 
 export interface Route {
@@ -86,7 +93,10 @@ export interface Toast {
 
 export interface ChecklistState {
   completed: boolean;
+  approved: boolean;
   items: Record<string, boolean>;
+  failedCriticalKeys?: string[];
+  syncStatus?: 'pendente' | 'sincronizado' | 'erro' | null;
 }
 
 export interface AppContextValue {
@@ -100,7 +110,11 @@ export interface AppContextValue {
   returnChecklist: ChecklistState;
   isAuthenticated: boolean;
   apiMode: 'mock' | 'http';
-  login: (payload: { identifier?: string; password?: string }) => Promise<{ ok: boolean; message?: string }>;
+  hydrated: boolean;
+  login: (payload: {
+    identifier?: string;
+    password?: string;
+  }) => Promise<{ ok: boolean; message?: string }>;
   logout: () => Promise<void>;
   updateChecklist: (
     kind: 'vehicle' | 'return',
@@ -108,9 +122,15 @@ export interface AppContextValue {
     metadata?: Record<string, unknown>,
   ) => Promise<boolean>;
   startNavigation: (stopId: string) => Promise<void>;
-  confirmDelivery: (stopId: string, delivery: { recipient: string; signature: string }) => Promise<boolean>;
-  registerFailure: (stopId: string, occurrence: { reason: string; notes: string }) => Promise<boolean>;
-  finishRoute: () => void;
+  confirmDelivery: (
+    stopId: string,
+    delivery: { recipient: string; signature: string; photo?: string; location?: GeoPoint },
+  ) => Promise<boolean>;
+  registerFailure: (
+    stopId: string,
+    occurrence: { reason: string; notes: string; photo?: string; location?: GeoPoint },
+  ) => Promise<boolean>;
+  finishRoute: () => boolean;
   markNotificationsRead: () => void;
   createTicket: (payload: { category: string; description: string }) => Promise<boolean>;
   showToast: (message: string, tone?: 'success' | 'warning') => void;

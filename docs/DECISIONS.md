@@ -73,6 +73,27 @@ reescritos na Fase 6 de qualquer forma — puro desperdício de revisão.
 quando, entre outras coisas, sai dos globs legados de `eslint.config.js` e
 `.prettierignore` e passa a cumprir as regras estritas sem rebaixamento.
 
+## ADR-005 — `idb` para a camada de persistência offline (Fase 5)
+
+**Contexto:** a Fase 5 exige persistência real (sessão, rota, checklists,
+entregas, ocorrências sobrevivem a recarregar/fechar o app) e uma fila de
+saída (outbox) offline-first. A API nativa de IndexedDB é baseada em
+eventos e verbosa; escrever a camada de storage diretamente sobre ela
+tornaria `src/lib/offline/` difícil de ler e testar.
+
+**Decisão:** `idb` (biblioteca de Jake Archibald, ~1kb, sem dependências),
+que envolve IndexedDB em Promises. Em desenvolvimento/teste,
+`fake-indexeddb` (dev dependency) fornece uma implementação de IndexedDB em
+memória para o Vitest/jsdom, que não implementa IndexedDB nativamente.
+
+**Alternativas consideradas:** Dexie.js (mais completo, mas maior e com
+recursos — como queries reativas — não necessários aqui); `localStorage`
+(síncrono, limite de ~5MB, não serve para armazenar fotos/assinaturas em
+base64 da fila de saída).
+
+**Custo:** nenhum — bibliotecas open-source pequenas, sem serviço externo.
+`fake-indexeddb` é dev-only, não entra no bundle de produção.
+
 ## ADR-004 — Adiar a extração física de `packages/core`/`apps/web` para o início da Fase 9 (Fase 2)
 
 **Contexto:** o prompt mestre desenha uma arquitetura alvo com

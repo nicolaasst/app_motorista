@@ -2,14 +2,7 @@ import { useEffect, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-
-const RETURN_CHECKLIST_ITEMS = [
-  { key: 'combustivel', label: '1. Combustível e Fluidos' },
-  { key: 'lataria', label: '2. Lataria e Novas Avarias' },
-  { key: 'pneus', label: '3. Pneus e Calibragem' },
-  { key: 'limpeza', label: '4. Limpeza da Cabine e Baú' },
-  { key: 'chaves', label: '5. Devolução de Chaves e CRLV' },
-];
+import { returnChecklistItems as RETURN_CHECKLIST_ITEMS } from '../lib/fixtures.js';
 
 export default function B7ChecklistDeRetorno() {
   const navigate = useNavigate();
@@ -19,13 +12,13 @@ export default function B7ChecklistDeRetorno() {
   );
 
   const handleFinish = async () => {
-    const complete = await updateChecklist('return', items);
-    if (!complete) {
-      showToast('Conclua todos os itens do retorno.', 'warning');
+    const approved = await updateChecklist('return', items);
+    if (!approved) {
+      showToast('Reprovação em item crítico do checklist de retorno impede o encerramento do turno.', 'warning');
       return;
     }
-    finishRoute();
-    navigate('/rota');
+    const finished = finishRoute();
+    if (finished) navigate('/rota');
   };
 
   useEffect(() => { document.title = 'RotaPro Driver'; }, []);

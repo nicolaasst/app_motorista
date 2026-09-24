@@ -30,7 +30,11 @@ const LogotipoRotaproDriver = lazy(() => import('./pages/LogotipoRotaproDriver.j
 const DesignSystemShowcase = lazy(() => import('./dev/DesignSystemShowcase.tsx'));
 
 function ProtectedRoutes() {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, hydrated } = useApp();
+  // Enquanto a sessão persistida (IndexedDB) ainda está sendo carregada,
+  // não decide — decidir cedo demais redireciona para "/" mesmo quando
+  // existe uma sessão salva, perdendo a rota atual a cada recarregamento.
+  if (!hydrated) return <RouteFallback />;
   return isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
 }
 

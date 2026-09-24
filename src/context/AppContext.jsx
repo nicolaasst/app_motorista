@@ -1,30 +1,171 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api, apiMode } from '../api/index.js';
-const completedStops = Array.from({ length: 3 }, (_, index) => ({ id: `stop-0${index + 1}`, number: index + 1, customer: `Parada concluída ${index + 1}`, address: 'São Paulo', window: '12:00 - 12:30', volumes: 1, invoice: `NF-890${index + 1}`, type: 'Comercial', status: 'delivered', deliveredAt: '13:42' }));
-const visibleStops = [
-  { id: 'stop-05', number: 5, customer: 'Farmácia Santa Clara Ltda', address: 'Av. Paulista, 1230 - Bela Vista, São Paulo', window: '14:00 - 14:30', volumes: 3, invoice: 'NF-89122', type: 'Comercial', status: 'navigating' },
-  { id: 'stop-06', number: 6, customer: 'Supermercado Central', address: 'Rua Augusta, 890 - Consolação', window: '14:45 - 15:15', volumes: 5, invoice: 'NF-89130', type: 'Comercial', status: 'pending' },
-  { id: 'stop-07', number: 7, customer: 'Dra. Camila Torres', address: 'Alameda Santos, 450 - Cerqueira César', window: '15:30 - 16:00', volumes: 1, invoice: 'NF-89144', type: 'Residencial', status: 'pending' },
-  { id: 'stop-08', number: 8, customer: 'Tech Solutions SP', address: 'Rua da Consolação, 2100 - Consolação', window: '16:20 - 16:50', volumes: 2, invoice: 'NF-89151', type: 'Comercial', status: 'delivered', deliveredAt: '13:42' },
-];
-const extraStops = Array.from({ length: 11 }, (_, index) => { const number = index + 9; return { id: `stop-${String(number).padStart(2, '0')}`, number, customer: `Cliente da rota ${number}`, address: 'São Paulo', window: '16:50 - 17:20', volumes: 1, invoice: `NF-89${number}`, type: 'Comercial', status: 'pending' }; });
-const initialRoute = { id: 'ROM-2024-88412', sector: 'Setor Paulista 03', date: 'Hoje, 24 de outubro', shift: 'Turno da tarde', distance: '42,5 km', estimate: '17:30', status: 'Em operação', stops: [...completedStops, ...visibleStops, ...extraStops] };
-const initialReceipts = [{ id: 'receipt-88401', invoice: 'NF-89098', customer: 'Hospital Vida Nova', address: 'Av. Brasil, 560 - Jardim América', amount: 'R$ 1.280,00', date: '23 out. 2024', status: 'Entregue', recipient: 'Mariana Alves', signature: 'Mariana Alves', routeId: 'ROM-2024-88376' }];
-const initialHistory = [{ id: 'ROM-2024-88376', date: '23 out. 2024', sector: 'Setor Centro 02', stops: 16, delivered: 16, distance: '38,2 km', duration: '7h 12min', status: 'Concluída' }, { id: 'ROM-2024-88322', date: '22 out. 2024', sector: 'Setor Moema 01', stops: 14, delivered: 13, distance: '31,8 km', duration: '6h 48min', status: 'Concluída com ocorrência' }];
+import {
+  fixtureRoute,
+  fixtureReceipts,
+  fixtureHistory,
+  fixtureNotifications,
+  vehicleChecklistItems,
+  returnChecklistItems,
+} from '../lib/fixtures.js';
+import { evaluateChecklist } from '../lib/domain/checklist.ts';
+import { checkCanFinishRoute } from '../lib/domain/route.ts';
+import { createIndexedDbKeyValueStore, createIndexedDbOutboxStore } from '../lib/offline/indexedDbStore.ts';
+import { createOutboxSync } from '../lib/offline/outboxSync.ts';
+
 const AppContext = createContext(null);
+const PERSISTED_STATE_KEY = 'app-state';
+const emptyChecklist = { completed: false, approved: false, items: {}, syncStatus: null };
+
 export function AppProvider({ children }) {
-  const [driver, setDriver] = useState(null); const [vehicleChecklist, setVehicleChecklist] = useState({ completed: false, items: {} }); const [returnChecklist, setReturnChecklist] = useState({ completed: false, items: {} }); const [route, setRoute] = useState(initialRoute); const [receipts, setReceipts] = useState(initialReceipts); const [history, setHistory] = useState(initialHistory); const [notifications, setNotifications] = useState([{ id: 'notification-1', title: 'Rota sincronizada', body: 'Sua rota da tarde está pronta.', unread: true }, { id: 'notification-2', title: 'Janela de entrega', body: 'A próxima parada começa às 14:00.', unread: true }, { id: 'notification-3', title: 'Lembrete', body: 'Faça o checklist antes de sair.', unread: true }]); const [toast, setToast] = useState(null);
+  const [driver, setDriver] = useState(null);
+  const [vehicleChecklist, setVehicleChecklist] = useState(emptyChecklist);
+  const [returnChecklist, setReturnChecklist] = useState(emptyChecklist);
+  const [route, setRoute] = useState(fixtureRoute);
+  const [receipts, setReceipts] = useState(fixtureReceipts);
+  const [history, setHistory] = useState(fixtureHistory);
+  const [notifications, setNotifications] = useState(fixtureNotifications);
+  const [toast, setToast] = useState(null);
+  const hydratedRef = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
+  const kvStore = useMemo(() => createIndexedDbKeyValueStore(), []);
+  const outboxStore = useMemo(() => createIndexedDbOutboxStore(), []);
+
   const showToast = (message, tone = 'success') => { setToast({ message, tone, id: Date.now() }); window.setTimeout(() => setToast(null), 3400); };
+
+  // Persistência real da jornada: sessão, rota do dia, checklists, recibos,
+  // histórico e notificações sobrevivem a recarregar/fechar o app (Fase 5).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const stored = await kvStore.get(PERSISTED_STATE_KEY);
+      if (cancelled) return;
+      if (stored) {
+        if (stored.driver) setDriver(stored.driver);
+        if (stored.vehicleChecklist) setVehicleChecklist(stored.vehicleChecklist);
+        if (stored.returnChecklist) setReturnChecklist(stored.returnChecklist);
+        if (stored.route) setRoute(stored.route);
+        if (stored.receipts) setReceipts(stored.receipts);
+        if (stored.history) setHistory(stored.history);
+        if (stored.notifications) setNotifications(stored.notifications);
+      }
+      hydratedRef.current = true;
+      setHydrated(true);
+    })();
+    return () => { cancelled = true; };
+  }, [kvStore]);
+
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    kvStore.set(PERSISTED_STATE_KEY, { driver, vehicleChecklist, returnChecklist, route, receipts, history, notifications });
+  }, [kvStore, driver, vehicleChecklist, returnChecklist, route, receipts, history, notifications]);
+
+  // Fila de saída offline-first: checklist/chegada/entrega/ocorrência
+  // gravam local primeiro (estado "pendente"), depois tentam sincronizar
+  // com o backend. Nunca marca "sincronizado" sem confirmação real do
+  // servidor — ver src/lib/offline/outboxSync.ts.
+  const outboxSync = useMemo(() => createOutboxSync({
+    store: outboxStore,
+    send: async (item) => {
+      const payload = { ...item.payload, idempotencyKey: item.idempotencyKey };
+      if (item.operation === 'checklist') {
+        await api.checklist(payload);
+        return;
+      }
+      const { stopId, ...rest } = payload;
+      if (item.operation === 'arrive') await api.arrive(stopId, rest);
+      if (item.operation === 'deliver') { const result = await api.deliver(stopId, rest); applyDeliverResult(stopId, result); }
+      if (item.operation === 'fail') await api.fail(stopId, rest);
+      markStopSynced(stopId, item.operation);
+    },
+  }), [outboxStore]);
+
+  useEffect(() => {
+    const handleOnline = () => outboxSync.flush();
+    window.addEventListener('online', handleOnline);
+    outboxSync.flush();
+    return () => { window.removeEventListener('online', handleOnline); outboxSync.dispose(); };
+  }, [outboxSync]);
+
+  function markStopSynced(stopId, operation) {
+    if (operation !== 'deliver' && operation !== 'fail') return;
+    setRoute((current) => ({ ...current, stops: current.stops.map((stop) => stop.id === stopId ? { ...stop, syncStatus: 'sincronizado' } : stop) }));
+  }
+
+  function applyDeliverResult(stopId, result) {
+    if (result?.receipt) setReceipts((current) => [result.receipt, ...current.filter((receipt) => receipt.invoice !== result.receipt.invoice)]);
+  }
+
+  async function enqueueAndSync(operation, payload) {
+    if (apiMode !== 'http') return; // modo mock não tem backend real para sincronizar
+    await outboxStore.enqueue(operation, payload);
+    outboxSync.flush();
+  }
+
   const login = async ({ identifier, password }) => { try { const result = await api.login({ identifier: identifier?.trim(), password: password?.trim() }); setDriver(result.driver); if (apiMode === 'http') { const data = await api.today(); if (data.route) setRoute(data.route); const receiptsData = await api.receipts(); if (receiptsData.receipts) setReceipts(receiptsData.receipts); const notificationsData = await api.notifications(); if (notificationsData.notifications) setNotifications(notificationsData.notifications); } showToast('Login realizado. Vamos preparar seu turno.'); return { ok: true }; } catch (error) { return { ok: false, message: error.message }; } };
-  const logout = async () => { await api.logout(); setDriver(null); setVehicleChecklist({ completed: false, items: {} }); setReturnChecklist({ completed: false, items: {} }); };
-  const updateChecklist = async (kind, items, metadata = {}) => { const complete = Object.values(items).length === 0 || Object.values(items).every(Boolean); if (kind === 'vehicle') setVehicleChecklist({ completed: complete, items }); if (kind === 'return') setReturnChecklist({ completed: complete, items }); if (apiMode === 'http') await api.checklist({ type: kind, items, ...metadata }); return complete; };
-  const startNavigation = async (stopId) => { setRoute((current) => ({ ...current, stops: current.stops.map((stop) => stop.id === stopId && ['pending', 'navigating'].includes(stop.status) ? { ...stop, status: 'navigating' } : stop) })); if (apiMode === 'http') await api.arrive(stopId, { phase: 'navigation' }); };
-  const confirmDelivery = async (stopId, delivery) => { const stop = route.stops.find((item) => item.id === stopId); if (!stop) return false; const deliveredAt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); const updatedStop = { ...stop, ...delivery, status: 'delivered', deliveredAt }; setRoute((current) => ({ ...current, stops: current.stops.map((item) => item.id === stopId ? updatedStop : item) })); if (apiMode === 'http') { const result = await api.deliver(stopId, delivery); if (result.receipt) setReceipts((current) => [result.receipt, ...current.filter((receipt) => receipt.invoice !== result.receipt.invoice)]); } else setReceipts((current) => [{ id: `receipt-${stop.invoice}`, invoice: stop.invoice, customer: stop.customer, address: stop.address, amount: `R$ ${(stop.volumes * 420 + 320).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, date: '24 out. 2024', status: 'Entregue', recipient: delivery.recipient, signature: delivery.signature, routeId: route.id, deliveredAt }, ...current.filter((receipt) => receipt.invoice !== stop.invoice)]); setNotifications((current) => [{ id: `notification-${Date.now()}`, title: 'Entrega confirmada', body: `${stop.customer} recebeu ${stop.volumes} volume(s).`, unread: true }, ...current]); showToast(`Entrega da parada #${stop.number} confirmada.`); return true; };
-  const registerFailure = async (stopId, occurrence) => { const stop = route.stops.find((item) => item.id === stopId); if (!stop) return false; const updatedStop = { ...stop, status: 'failed', failure: occurrence, failedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }; setRoute((current) => ({ ...current, stops: current.stops.map((item) => item.id === stopId ? updatedStop : item) })); if (apiMode === 'http') await api.fail(stopId, occurrence); setNotifications((current) => [{ id: `notification-${Date.now()}`, title: 'Ocorrência registrada', body: `${stop.customer}: ${occurrence.reason}.`, unread: true }, ...current]); showToast('Ocorrência registrada e sincronizada.', 'warning'); return true; };
-  const finishRoute = () => { setRoute((current) => ({ ...current, status: 'Concluída' })); setHistory((current) => [{ id: route.id, date: route.date, sector: route.sector, stops: route.stops.length, delivered: route.stops.filter((stop) => stop.status === 'delivered').length, distance: route.distance, duration: '7h 30min', status: route.stops.some((stop) => stop.status === 'failed') ? 'Concluída com ocorrência' : 'Concluída' }, ...current.filter((item) => item.id !== route.id)]); showToast('Rota encerrada. Faça o checklist de retorno.'); };
+
+  const logout = async () => { await api.logout(); setDriver(null); setVehicleChecklist(emptyChecklist); setReturnChecklist(emptyChecklist); };
+
+  const updateChecklist = async (kind, items, metadata = {}) => {
+    const definitions = kind === 'vehicle' ? vehicleChecklistItems : returnChecklistItems;
+    const evaluation = evaluateChecklist(definitions, items);
+    const nextState = { completed: evaluation.complete, approved: evaluation.approved, items, failedCriticalKeys: evaluation.failedCriticalKeys, syncStatus: apiMode === 'http' ? 'pendente' : null };
+    if (kind === 'vehicle') setVehicleChecklist(nextState); else setReturnChecklist(nextState);
+    await enqueueAndSync('checklist', { type: kind, items, ...metadata });
+    return evaluation.approved;
+  };
+
+  const startNavigation = async (stopId) => { setRoute((current) => ({ ...current, stops: current.stops.map((stop) => stop.id === stopId && ['pending', 'navigating'].includes(stop.status) ? { ...stop, status: 'navigating' } : stop) })); await enqueueAndSync('arrive', { stopId, phase: 'navigation' }); };
+
+  const confirmDelivery = async (stopId, delivery) => {
+    const stop = route.stops.find((item) => item.id === stopId);
+    if (!stop) return false;
+    const deliveredAt = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const syncStatus = apiMode === 'http' ? 'pendente' : 'sincronizado';
+    const updatedStop = { ...stop, ...delivery, status: 'delivered', deliveredAt, syncStatus };
+    setRoute((current) => ({ ...current, stops: current.stops.map((item) => item.id === stopId ? updatedStop : item) }));
+    if (apiMode === 'http') {
+      await enqueueAndSync('deliver', { stopId, ...delivery });
+    } else {
+      setReceipts((current) => [{ id: `receipt-${stop.invoice}`, invoice: stop.invoice, customer: stop.customer, address: stop.address, amount: `R$ ${(stop.volumes * 420 + 320).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, date: '24 out. 2024', status: 'Entregue', recipient: delivery.recipient, signature: delivery.signature, routeId: route.id, deliveredAt }, ...current.filter((receipt) => receipt.invoice !== stop.invoice)]);
+    }
+    setNotifications((current) => [{ id: `notification-${Date.now()}`, title: 'Entrega confirmada', body: `${stop.customer} recebeu ${stop.volumes} volume(s).`, unread: true }, ...current]);
+    showToast(`Entrega da parada #${stop.number} confirmada.`);
+    return true;
+  };
+
+  const registerFailure = async (stopId, occurrence) => {
+    const stop = route.stops.find((item) => item.id === stopId);
+    if (!stop) return false;
+    const syncStatus = apiMode === 'http' ? 'pendente' : 'sincronizado';
+    const updatedStop = { ...stop, status: 'failed', failure: occurrence, failedAt: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), syncStatus };
+    setRoute((current) => ({ ...current, stops: current.stops.map((item) => item.id === stopId ? updatedStop : item) }));
+    await enqueueAndSync('fail', { stopId, ...occurrence });
+    setNotifications((current) => [{ id: `notification-${Date.now()}`, title: 'Ocorrência registrada', body: `${stop.customer}: ${occurrence.reason}.`, unread: true }, ...current]);
+    showToast('Ocorrência registrada. Sincronizando com a central...', 'warning');
+    return true;
+  };
+
+  const finishRoute = () => {
+    const check = checkCanFinishRoute(route);
+    if (!check.canFinish) {
+      if (check.reason === 'ja-encerrada') showToast('Esta rota já foi encerrada.', 'warning');
+      else showToast(`Conclua as ${check.pendingStopIds.length} parada(s) restante(s) antes de encerrar a rota.`, 'warning');
+      return false;
+    }
+    setRoute((current) => ({ ...current, status: 'Concluída' }));
+    setHistory((current) => [{ id: route.id, date: route.date, sector: route.sector, stops: route.stops.length, delivered: route.stops.filter((stop) => stop.status === 'delivered').length, distance: route.distance, duration: '7h 30min', status: route.stops.some((stop) => stop.status === 'failed') ? 'Concluída com ocorrência' : 'Concluída' }, ...current.filter((item) => item.id !== route.id)]);
+    setVehicleChecklist(emptyChecklist);
+    setReturnChecklist(emptyChecklist);
+    showToast('Rota encerrada. Faça o checklist de retorno.');
+    return true;
+  };
+
   const markNotificationsRead = () => { setNotifications((current) => current.map((item) => ({ ...item, unread: false }))); if (apiMode === 'http') notifications.filter((item) => item.unread).forEach((item) => api.readNotification?.(item.id)); };
+
   const createTicket = async (payload) => { if (apiMode === 'http') await api.createTicket(payload); showToast('Chamado enviado para análise.'); return true; };
-  const value = useMemo(() => ({ driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, isAuthenticated: Boolean(driver), apiMode, login, logout, updateChecklist, startNavigation, confirmDelivery, registerFailure, finishRoute, markNotificationsRead, createTicket, showToast }), [driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist]);
+
+  const value = useMemo(() => ({ driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, isAuthenticated: Boolean(driver), apiMode, hydrated, login, logout, updateChecklist, startNavigation, confirmDelivery, registerFailure, finishRoute, markNotificationsRead, createTicket, showToast }), [driver, route, receipts, history, notifications, toast, vehicleChecklist, returnChecklist, hydrated]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 export function useApp() { const context = useContext(AppContext); if (!context) throw new Error('useApp precisa ser usado dentro de AppProvider'); return context; }

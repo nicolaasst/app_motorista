@@ -2,26 +2,21 @@ import { useEffect, useState } from 'react';
 import ScreenFrame from '../lib/ScreenFrame.jsx';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
-
-const VEHICLE_CHECKLIST_ITEMS = [
-  { key: 'pneus', label: '1. Pneus e Calibragem' },
-  { key: 'luzes', label: '2. Luzes, Faróis e Setas' },
-  { key: 'oleo', label: '3. Nível de Óleo e Combustível' },
-  { key: 'documentacao', label: '4. Documentação e CRLV-e' },
-  { key: 'lataria', label: '5. Lataria e Avarias Externas' },
-];
+import { vehicleChecklistItems as VEHICLE_CHECKLIST_ITEMS } from '../lib/fixtures.js';
 
 export default function A3ChecklistDoVeCulo() {
   const navigate = useNavigate();
-  const { updateChecklist } = useApp();
+  const { updateChecklist, showToast } = useApp();
   const [items, setItems] = useState(() =>
     Object.fromEntries(VEHICLE_CHECKLIST_ITEMS.map((item) => [item.key, true])),
   );
 
   const handleStartShift = async () => {
-    // Fase 3 corrige a coleta real das respostas; o bloqueio por item crítico
-    // (reprovação impedindo o início da rota) é objeto da Fase 5.
-    await updateChecklist('vehicle', items);
+    const approved = await updateChecklist('vehicle', items);
+    if (!approved) {
+      showToast('Reprovação em item crítico impede o início do turno. Acione a manutenção.', 'warning');
+      return;
+    }
     navigate('/rota');
   };
 

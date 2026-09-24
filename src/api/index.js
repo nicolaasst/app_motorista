@@ -20,7 +20,7 @@ const http = {
   receipts: () => jsonFetch('/v1/receipts'),
   notifications: () => jsonFetch('/v1/notifications'),
   readNotification: (id) => jsonFetch(`/v1/notifications/${id}/read`, { method: 'POST' }),
-  checklist: (payload) => jsonFetch('/v1/checklists', { method: 'POST', body: JSON.stringify(payload) }),
+  checklist: (payload) => jsonFetch('/v1/checklists', { method: 'POST', headers: { 'Idempotency-Key': payload.idempotencyKey || crypto.randomUUID() }, body: JSON.stringify(payload) }),
   arrive: (stopId, payload = {}) => jsonFetch(`/v1/stops/${stopId}/arrive`, { method: 'POST', headers: { 'Idempotency-Key': payload.idempotencyKey || crypto.randomUUID() }, body: JSON.stringify(payload) }),
   deliver: (stopId, payload) => jsonFetch(`/v1/stops/${stopId}/deliver`, { method: 'POST', headers: { 'Idempotency-Key': payload.idempotencyKey || crypto.randomUUID() }, body: JSON.stringify(payload) }),
   fail: (stopId, payload) => jsonFetch(`/v1/stops/${stopId}/fail`, { method: 'POST', headers: { 'Idempotency-Key': payload.idempotencyKey || crypto.randomUUID() }, body: JSON.stringify(payload) }),
