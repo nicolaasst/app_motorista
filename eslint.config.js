@@ -44,6 +44,11 @@ export default tseslint.config(
       'react/prop-types': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Padrão do design system usa <label> "cartão" com texto real a 3+
+      // níveis de profundidade (ícone + título + descrição dentro de divs
+      // aninhadas) — acessível de verdade para leitor de tela, mas além do
+      // depth padrão de 2 da regra, que gerava falso positivo.
+      'jsx-a11y/label-has-associated-control': ['error', { depth: 4 }],
     },
   },
   {

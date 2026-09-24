@@ -16,6 +16,8 @@ export default function B1RotaDoDiaHome() {
     document.title = 'RotaPro Driver';
   }, []);
 
+  const allStopsProcessed = route.stops.length > 0 && processed === route.stops.length;
+
   const handleStartStop05 = () => {
     if (!stop05) return;
     startNavigation(stop05.id);
@@ -301,14 +303,25 @@ export default function B1RotaDoDiaHome() {
             {/* Floating Sticky Action Trigger for Mobile Glove Ergonomics */}
             <div className="fixed bottom-[84px] inset-x-0 px-margin z-40 pointer-events-none">
               <div className="max-w-md mx-auto pointer-events-auto">
-                <button
-                  className="w-full h-[56px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(0,176,0,0.4)] active:scale-98 transition-all hover:bg-primary"
-                  onClick={handleStartStop05}
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[24px]">play_circle</span>
-                  <span>Iniciar Próxima Parada (Parada #05)</span>
-                </button>
+                {allStopsProcessed ? (
+                  <button
+                    className="w-full h-[56px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(0,176,0,0.4)] active:scale-98 transition-all hover:bg-primary"
+                    onClick={() => navigate('/rota/fim')}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[24px]">task_alt</span>
+                    <span>Ver Resumo da Rota</span>
+                  </button>
+                ) : (
+                  <button
+                    className="w-full h-[56px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(0,176,0,0.4)] active:scale-98 transition-all hover:bg-primary"
+                    onClick={handleStartStop05}
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[24px]">play_circle</span>
+                    <span>Iniciar Próxima Parada (Parada #05)</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

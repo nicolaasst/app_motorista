@@ -17,9 +17,9 @@ const B1RotaDoDiaHome = lazy(() => import('./features/rota/pages/B1RotaDoDiaHome
 const B2DetalheDaParada = lazy(() => import('./features/rota/pages/B2DetalheDaParada.tsx'));
 const B3NavegarAteAParada = lazy(() => import('./features/rota/pages/B3NavegarAteAParada.tsx'));
 const B4ConfirmarEntrega = lazy(() => import('./features/rota/pages/B4ConfirmarEntrega.tsx'));
-const B5RegistrarFalha = lazy(() => import('./pages/B5RegistrarFalha.jsx'));
-const B6FimDeRota = lazy(() => import('./pages/B6FimDeRota.jsx'));
-const B7ChecklistDeRetorno = lazy(() => import('./pages/B7ChecklistDeRetorno.jsx'));
+const B5RegistrarFalha = lazy(() => import('./features/rota/pages/B5RegistrarFalha.tsx'));
+const B6FimDeRota = lazy(() => import('./features/rota/pages/B6FimDeRota.tsx'));
+const B7ChecklistDeRetorno = lazy(() => import('./features/rota/pages/B7ChecklistDeRetorno.tsx'));
 const C1HistRicoDeRotas = lazy(() => import('./pages/C1HistRicoDeRotas.jsx'));
 const C2DetalheDeRotaConcluDa = lazy(() => import('./pages/C2DetalheDeRotaConcluDa.jsx'));
 const D1Recibos = lazy(() => import('./pages/D1Recibos.jsx'));
