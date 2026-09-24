@@ -32,6 +32,47 @@ puros em JS, limiar configurável via `VISUAL_DIFF_THRESHOLD`.
 
 **Custo:** nenhum — bibliotecas open-source pequenas, sem serviço externo.
 
+## ADR-003 — Adoção incremental de ESLint/Prettier estritos sobre código legado (Fase 1)
+
+**Contexto:** a Fase 1 exige ESLint com `jsx-a11y` como erro e Prettier em
+todo o projeto. Rodar isso contra as 16 páginas legadas de uma vez causou 92
+problemas (15 erro / 77 warning) — a maioria (anchor-is-valid,
+label-has-associated-control, click-events-have-key-events) é trabalho real
+de acessibilidade que pertence à Fase 6 (migração tela por tela, onde cada
+tela ganha o componente e o teste corretos), não a um `--fix` em massa
+agora. O mesmo vale para Prettier: as páginas atuais são escritas em uma
+linha só por componente; reformatá-las agora criaria um diff enorme em
+arquivos que serão movidos para `features/<dominio>/pages/<Nome>.tsx` e
+reescritos na Fase 6 de qualquer forma — puro desperdício de revisão.
+
+**Decisão:** adoção incremental, não supressão.
+
+- **Corrigido agora** (bugs reais, sem relação com a migração de tela):
+  `target="_blank"` sem `rel="noreferrer"` (risco de segurança) em
+  `B2DetalheDaParada.jsx`; 4 `<img>` sem `alt` (usando o texto já presente em
+  `data-alt`, que é descritivo, não decorativo); `autofocus` → `autoFocus`
+  em `A2EsqueciMinhaSenhaOtp.jsx`; aspas não escapadas em
+  `E2CentralDeSuporteEAjuda.jsx`; variável `location` não usada em
+  `PageRuntime.jsx`. Nenhuma dessas mudanças altera a renderização —
+  confirmado por `scripts/visual-compare.mjs` (0% de diff nas 16 telas
+  antes/depois).
+- **Rebaixado para `warn` apenas nos globs legados**
+  (`src/pages/**/*.jsx`, `src/lib/**/*.jsx`, `src/context/**/*.jsx`,
+  `src/api/**/*.js`) em `eslint.config.js`: `jsx-a11y/anchor-is-valid`,
+  `jsx-a11y/label-has-associated-control`,
+  `jsx-a11y/click-events-have-key-events`,
+  `jsx-a11y/no-static-element-interactions`, `jsx-a11y/no-autofocus`,
+  `react-hooks/exhaustive-deps`. Cada arquivo sai da lista de globs legados
+  (e passa a exigir `error`) no momento em que é migrado na Fase 6.
+- **Prettier**: `.prettierignore` exclui `src/pages/`, `src/lib/`,
+  `src/context/`, `src/api/`, `src/App.jsx`, `src/styles.css`,
+  `tailwind.config.js`, `index.html` e `server/` pelo mesmo motivo. Todo
+  arquivo novo desta refatoração (scripts, docs, config) já está formatado.
+
+**Consequência para `MIGRATION_PROGRESS.md`:** uma tela só é marcada `done`
+quando, entre outras coisas, sai dos globs legados de `eslint.config.js` e
+`.prettierignore` e passa a cumprir as regras estritas sem rebaixamento.
+
 ## Decisões ainda pendentes (não tomadas nesta sessão)
 
 As decisões abaixo têm ADR **pendente** porque dependem de confirmação do

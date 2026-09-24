@@ -163,7 +163,7 @@ export default function B5RegistrarFalha() {
         <div className="grid grid-cols-2 gap-space-sm mb-space-sm">
           {/* Photo Slot 1: Captured with Metadata */}
           <div className="relative flex flex-col rounded-DEFAULT overflow-hidden bg-surface-container shadow-inner aspect-[4/3] group">
-            <img className="w-full h-full object-cover" data-alt="Close-up operational capture of a pharmacy metal security shutter closed during daytime business hours with official street number visible under bright outdoor sunlight" src="/screens/logotipo_rotapro_driver.png" />
+            <img alt="Foto da ocorrência registrada" className="w-full h-full object-cover" data-alt="Close-up operational capture of a pharmacy metal security shutter closed during daytime business hours with official street number visible under bright outdoor sunlight" src="/screens/logotipo_rotapro_driver.png" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#131313]/90 via-transparent to-black/20 flex flex-col justify-between p-2 text-surface-container-lowest">
               <div className="flex items-center justify-between">
                 <span className="px-1.5 py-0.5 rounded-full bg-primary font-code-sm text-[9px] font-bold">GEO OK</span>

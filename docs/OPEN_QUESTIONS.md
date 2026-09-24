@@ -57,6 +57,7 @@ por tipo de endereço — condomínio vs. rua residencial vs. zona rural?).
 Pendência de produto explícita (prompt mestre, seção 9 / Fase 5, item 9).
 
 **Opções não decididas:**
+
 - On-device no app nativo (Google ML Kit Text Recognition no Android,
   Apple Vision Framework no iOS) — sem custo por chamada, funciona offline,
   mas exige o app nativo (Fase 9) para existir de verdade.

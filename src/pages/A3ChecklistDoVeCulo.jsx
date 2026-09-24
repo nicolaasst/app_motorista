@@ -231,7 +231,7 @@ export default function A3ChecklistDoVeCulo() {
         {/* Photo Preview Thumbnail Container (Hidden by default) */}
         <div className="hidden flex items-center justify-between p-space-xs bg-surface-container-low rounded-DEFAULT" id="photo-preview-container">
           <div className="flex items-center space-x-space-sm">
-            <img className="w-14 h-14 object-cover rounded-DEFAULT" data-alt="Close up photo of white utility cargo delivery van front bumper with slight road dust and clean clear headlights taken under daylight" id="photo-preview-img" src="/screens/logotipo_rotapro_driver.png" />
+            <img alt="Foto do veículo enviada para o checklist" className="w-14 h-14 object-cover rounded-DEFAULT" data-alt="Close up photo of white utility cargo delivery van front bumper with slight road dust and clean clear headlights taken under daylight" id="photo-preview-img" src="/screens/logotipo_rotapro_driver.png" />
             <div className="flex flex-col">
               <span className="font-label-md text-label-md text-on-surface">evidencia_01.jpg</span>
               <span className="font-code-sm text-code-sm text-on-surface-variant">1.4 MB • 06:42 AM</span>

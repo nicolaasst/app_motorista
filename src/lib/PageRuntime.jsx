@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 
-const routeFromPath = (path) => ({ rota: '/rota', historico: '/historico', recibos: '/recibos', perfil: '/perfil' }[path] || '/rota');
+export const routeFromPath = (path) => ({ rota: '/rota', historico: '/historico', recibos: '/recibos', perfil: '/perfil' }[path] || '/rota');
 
 export default function PageRuntime({ screenId, children }) {
   const ref = useRef(null);
   const navigate = useNavigate();
-  const location = useLocation();
   const params = useParams();
   const { login, updateChecklist, startNavigation, confirmDelivery, registerFailure, finishRoute, showToast, logout, route } = useApp();
   const stop = route.stops.find((item) => item.id === params.stopId) || route.stops[0];

@@ -168,7 +168,7 @@ export default function E2CentralDeSuporteEAjuda() {
               <span className="material-symbols-outlined text-on-surface-variant faq-icon transition-transform duration-200">expand_more</span>
             </button>
             <div className="faq-content hidden px-4 pb-4 font-body-sm text-body-sm text-on-surface-variant">
-              Ligue no mínimo 2 vezes pelo aplicativo, envie mensagem via WhatsApp cadastrado e aguarde 5 minutos. Persistindo a ausência, registre o evento de "Insucesso - Ausente" anexando foto do número da residência / fachada.
+              Ligue no mínimo 2 vezes pelo aplicativo, envie mensagem via WhatsApp cadastrado e aguarde 5 minutos. Persistindo a ausência, registre o evento de &quot;Insucesso - Ausente&quot; anexando foto do número da residência / fachada.
             </div>
           </div>
           {/* FAQ 3 */}
@@ -178,7 +178,7 @@ export default function E2CentralDeSuporteEAjuda() {
               <span className="material-symbols-outlined text-on-surface-variant faq-icon transition-transform duration-200">expand_more</span>
             </button>
             <div className="faq-content hidden px-4 pb-4 font-body-sm text-body-sm text-on-surface-variant">
-              Não realize a entrega. Fotografe a embalagem com a etiqueta e o código de barras legíveis, registre no app como "Recusa por Avaria" e retenha o volume no veículo para descarregamento na doca reversa no fim do turno.
+              Não realize a entrega. Fotografe a embalagem com a etiqueta e o código de barras legíveis, registre no app como &quot;Recusa por Avaria&quot; e retenha o volume no veículo para descarregamento na doca reversa no fim do turno.
             </div>
           </div>
           {/* FAQ 4 */}

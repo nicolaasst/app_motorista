@@ -46,7 +46,7 @@ export default function B2DetalheDaParada() {
           <div className="w-2 h-2 bg-primary rotate-45 -mt-1" />
         </div>
         {/* Waze / Maps Direct Operational Trigger */}
-        <a className="absolute bottom-3 right-3 h-10 px-4 rounded-full bg-primary-container hover:bg-primary text-on-primary shadow-md flex items-center gap-1.5 font-label-md text-label-md active:scale-95 transition-transform" href="https://maps.google.com/?q=Av.+Paulista+1230+Bela+Vista+Sao+Paulo" rel="noopener" target="_blank">
+        <a className="absolute bottom-3 right-3 h-10 px-4 rounded-full bg-primary-container hover:bg-primary text-on-primary shadow-md flex items-center gap-1.5 font-label-md text-label-md active:scale-95 transition-transform" href="https://maps.google.com/?q=Av.+Paulista+1230+Bela+Vista+Sao+Paulo" rel="noopener noreferrer" target="_blank">
           <span className="material-symbols-outlined text-[20px]">near_me</span>
           <span>Navegar no Waze / Maps</span>
         </a>
@@ -101,7 +101,7 @@ export default function B2DetalheDaParada() {
           </div>
           {/* Thumb Zone Dual Callouts */}
           <div className="grid grid-cols-2 gap-space-sm pt-1">
-            <a className="h-[52px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-transform" href="https://wa.me/5511987654321?text=Ola%20Roberto,%20sou%20o%20motorista%20da%20RotaPro%20chegando%20com%20sua%20entrega" rel="noopener" target="_blank">
+            <a className="h-[52px] rounded-full bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm active:scale-98 transition-transform" href="https://wa.me/5511987654321?text=Ola%20Roberto,%20sou%20o%20motorista%20da%20RotaPro%20chegando%20com%20sua%20entrega" rel="noopener noreferrer" target="_blank">
               <span className="material-symbols-outlined text-[22px]">chat</span>
               <span>WhatsApp</span>
             </a>

@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.resolve(__dirname, '../tests/visual/baseline');
 const baseUrl = process.env.BASELINE_BASE_URL || 'http://localhost:5173';
-const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const executablePath =
+  process.env.PLAYWRIGHT_CHROMIUM_PATH || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
 const screens = [
   { id: 'a.1_login_do_motorista', path: '/', requiresAuth: false },
@@ -22,7 +23,11 @@ const screens = [
   { id: 'c.1_hist_rico_de_rotas', path: '/historico', requiresAuth: true },
   { id: 'c.2_detalhe_de_rota_conclu_da', path: '/historico/ROM-2024-88376', requiresAuth: true },
   { id: 'd.1_recibos', path: '/recibos', requiresAuth: true },
-  { id: 'd.2_detalhe_do_recibo_com_assinatura', path: '/recibos/receipt-88401', requiresAuth: true },
+  {
+    id: 'd.2_detalhe_do_recibo_com_assinatura',
+    path: '/recibos/receipt-88401',
+    requiresAuth: true,
+  },
   { id: 'e.1_perfil_do_motorista', path: '/perfil', requiresAuth: true },
   { id: 'e.2_central_de_suporte_e_ajuda', path: '/suporte', requiresAuth: true },
 ];

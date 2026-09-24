@@ -37,10 +37,10 @@ componentes que reimplementam a mesma composição de tokens em todo arquivo
 
 Contagem de ocorrências em `src/pages/*.jsx`:
 
-| Classe | Ocorrências | Problema |
-|---|---:|---|
-| `text-gray-*` | 28 | Tailwind default, não um token do design system |
-| `bg-white` / `text-white` | 15 | Deveria ser `bg-surface-container-lowest`/`on-primary` conforme o contexto |
+| Classe                    | Ocorrências | Problema                                                                   |
+| ------------------------- | ----------: | -------------------------------------------------------------------------- |
+| `text-gray-*`             |          28 | Tailwind default, não um token do design system                            |
+| `bg-white` / `text-white` |          15 | Deveria ser `bg-surface-container-lowest`/`on-primary` conforme o contexto |
 
 Esses pontos precisam ser normalizados para os tokens equivalentes na Fase 4,
 sem alterar a aparência visual (os valores hexadecimais já são próximos ou
@@ -60,9 +60,10 @@ idênticos em vários casos — comparação pixel a pixel confirma via
 ```
 
 Uso consistente e alto volume confirma que o padrão visual (Material Symbols
-+ paleta verde tática + Space Mono para dados de código/rastreio) já está
-amplamente adotado — não é um esqueleto a ser preenchido, é um sistema em uso
-real que precisa ser **extraído para componentes**, não reescrito.
+
+- paleta verde tática + Space Mono para dados de código/rastreio) já está
+  amplamente adotado — não é um esqueleto a ser preenchido, é um sistema em uso
+  real que precisa ser **extraído para componentes**, não reescrito.
 
 ## 4. Ícones (`material-symbols-outlined`)
 

@@ -1,0 +1,20 @@
+dist/
+node_modules/
+coverage/
+tests/visual/
+public/
+*.png
+package-lock.json
+
+# Legado pré-Fase 6: reformatar agora criaria diffs enormes em arquivos que
+# serão movidos/reescritos tela a tela (ver docs/DECISIONS.md, ADR-003).
+# Cada arquivo sai desta lista quando migrado para features/<dominio>/pages.
+src/pages/
+src/lib/
+src/context/
+src/api/
+src/App.jsx
+src/styles.css
+tailwind.config.js
+index.html
+server/

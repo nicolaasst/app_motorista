@@ -129,7 +129,7 @@ export default function B4ConfirmarEntrega() {
         </div>
         {/* Preview da Foto com Overlay Informativo */}
         <div className="relative w-full h-52 rounded-[20px] overflow-hidden shadow-sm mb-3">
-          <img className="w-full h-full object-cover" data-alt="Close up photograph of a neatly delivered pharmaceutical supply cardboard box on a pharmacy reception counter, featuring visible delivery invoice NF-e paper with official stamp signature, clear natural commercial lighting, realistic logistics driver operational photography, vibrant soft green highlights, high visual clarity" src="/screens/logotipo_rotapro_driver.png" />
+          <img alt="Foto comprovante da entrega" className="w-full h-full object-cover" data-alt="Close up photograph of a neatly delivered pharmaceutical supply cardboard box on a pharmacy reception counter, featuring visible delivery invoice NF-e paper with official stamp signature, clear natural commercial lighting, realistic logistics driver operational photography, vibrant soft green highlights, high visual clarity" src="/screens/logotipo_rotapro_driver.png" />
           {/* Badges sobrepostas na imagem */}
           <div className="absolute top-3 left-3 bg-inverse-surface/85 backdrop-blur-md px-3 py-1 rounded-full text-surface flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-tertiary-fixed" />

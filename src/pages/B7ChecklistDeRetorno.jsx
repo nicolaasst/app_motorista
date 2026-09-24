@@ -77,7 +77,7 @@ export default function B7ChecklistDeRetorno() {
         <div className="flex items-center justify-between bg-surface-container-low p-space-sm rounded-DEFAULT">
           <div className="flex items-center gap-space-sm min-w-0">
             <div className="relative w-12 h-12 rounded-DEFAULT overflow-hidden shrink-0 bg-surface-container">
-              <img className="w-full h-full object-cover" data-alt="Close-up macro shot of a modern commercial van digital dashboard illuminated softly showing exact odometer reading 142898 km with sharp high-contrast dashboard gauges, logistics transport inspection photo in crisp clean vehicle interior lighting." src="/screens/logotipo_rotapro_driver.png" />
+              <img alt="Foto do odômetro no checklist de retorno" className="w-full h-full object-cover" data-alt="Close-up macro shot of a modern commercial van digital dashboard illuminated softly showing exact odometer reading 142898 km with sharp high-contrast dashboard gauges, logistics transport inspection photo in crisp clean vehicle interior lighting." src="/screens/logotipo_rotapro_driver.png" />
               <div className="absolute inset-0 bg-inverse-surface/10" />
             </div>
             <div className="flex flex-col truncate">
