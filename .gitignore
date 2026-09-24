@@ -1,0 +1,28 @@
+node_modules/
+dist/
+dist-ssr/
+.data/
+*.local
+
+# Vite
+.vite/
+
+# Env
+.env
+.env.*.local
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Visual regression working dirs (baseline is committed as reference; current/diff are ephemeral run outputs)
+tests/visual/current/
+tests/visual/diff/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
