@@ -20,8 +20,10 @@ const B4ConfirmarEntrega = lazy(() => import('./features/rota/pages/B4ConfirmarE
 const B5RegistrarFalha = lazy(() => import('./features/rota/pages/B5RegistrarFalha.tsx'));
 const B6FimDeRota = lazy(() => import('./features/rota/pages/B6FimDeRota.tsx'));
 const B7ChecklistDeRetorno = lazy(() => import('./features/rota/pages/B7ChecklistDeRetorno.tsx'));
-const C1HistRicoDeRotas = lazy(() => import('./pages/C1HistRicoDeRotas.jsx'));
-const C2DetalheDeRotaConcluDa = lazy(() => import('./pages/C2DetalheDeRotaConcluDa.jsx'));
+const C1HistoricoDeRotas = lazy(() => import('./features/historico/pages/C1HistoricoDeRotas.tsx'));
+const C2DetalheDeRotaConcluida = lazy(
+  () => import('./features/historico/pages/C2DetalheDeRotaConcluida.tsx'),
+);
 const D1Recibos = lazy(() => import('./pages/D1Recibos.jsx'));
 const D2DetalheDoReciboComAssinatura = lazy(
   () => import('./pages/D2DetalheDoReciboComAssinatura.jsx'),
@@ -149,8 +151,8 @@ const router = createBrowserRouter([
           { path: '/rota/parada/:stopId/falha', element: <B5RegistrarFalha /> },
           { path: '/rota/fim', element: <B6FimDeRota /> },
           { path: '/rota/retorno', element: <B7ChecklistDeRetorno /> },
-          { path: '/historico', element: <C1HistRicoDeRotas /> },
-          { path: '/historico/:routeId', element: <C2DetalheDeRotaConcluDa /> },
+          { path: '/historico', element: <C1HistoricoDeRotas /> },
+          { path: '/historico/:routeId', element: <C2DetalheDeRotaConcluida /> },
           { path: '/recibos', element: <D1Recibos /> },
           { path: '/recibos/:receiptId', element: <D2DetalheDoReciboComAssinatura /> },
           { path: '/perfil', element: <E1PerfilDoMotorista /> },
