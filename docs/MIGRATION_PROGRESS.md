@@ -1,8 +1,20 @@
 # MIGRATION_PROGRESS — ngs-driver (Base44 → Supabase)
 
-## Status: ✅ Regra 0 · ✅ Fase 1 (desenho) concluída — aguardando validação do responsável
+## Status: ✅ Regra 0 · ✅ Fase 1 · ✅ Fase 2 · ✅ Fase 3 (código) · ⏳ aplicação no banco (OQ-20) · ⏳ Fase 4 (nativo)
 
-**O banco não foi alterado** (decisão D6). Todo acesso ao Supabase até aqui foi somente leitura.
+**O banco hospedado ainda não foi alterado.** Tudo está implementado e testado localmente;
+aplicar depende da revisão da migration A pelo TMS e da decisão OQ-20. Relatório:
+`MIGRATION_REPORT.md`. Operação: `docs/OPERACAO_APP_MOTORISTA.md`.
+
+| verificação | resultado |
+|---|---|
+| `npm run lint` | limpo (cobertura ampliada para `hooks/`, `lib/`, `api/`) |
+| `npm test` (Vitest) | 11 testes da fila offline |
+| `npm run build` | ok, sem Base44, sem depender dos PNGs da marca |
+| `npm run test:db` (pgTAP, Postgres local) | 112 do app + 1000 do TMS (regressão) |
+| `deno test` / `deno check` (Edge Functions) | 15 testes |
+| chamadas do frontend × assinaturas SQL | 21 RPCs e 17 consultas conferidas automaticamente |
+| fumaça no navegador (Chromium) | tela de configuração sem env; redirecionamento ao login; login e recuperação renderizam; 0 erros de runtime |
 
 ### Documentos da Fase 1
 

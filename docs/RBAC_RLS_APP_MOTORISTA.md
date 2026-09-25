@@ -1,7 +1,22 @@
 # RBAC e RLS — app do motorista no Supabase compartilhado
 
-Status: **desenho para validação — nada aplicado no banco.** O SQL abaixo é ilustrativo, para
-revisão; a migration real será escrita depois da aprovação.
+Status: **implementado** em `supabase/migrations/20260928100000…100400` e coberto pelo pgTAP
+(`supabase/tests/database/00100`, `00101`; 112 testes) — **ainda não aplicado no projeto hospedado**
+(aguarda a revisão da migration A pelo TMS, `docs/OPERACAO_APP_MOTORISTA.md` §1). O SQL abaixo é o
+desenho; o código final está nas migrations.
+
+### Ajustes feitos na implementação (em relação ao desenho aprovado)
+
+| desenho | implementado | por quê |
+|---|---|---|
+| mensagens do motorista com `autor_tipo = 'motorista'` (CHECK alterado) | `autor_tipo = 'cliente'`, cargo `Motorista` no chamado | a tela da Central do TMS valida `z.enum(["cliente","suporte","sistema"])`; um valor novo quebraria a tela. Nenhuma mudança no TMS |
+| sobrecarga `proximo_codigo(p_tenant, p_prefixo)` | upsert no mesmo contador `codigos_sequenciais` dentro da RPC do app | evita alterar função do TMS |
+| hook consulta `app_motorista_perfis.situacao_cadastro` | hook usa só `users.ativo` (suspender o motorista desativa o usuário) | sem grants novos para `supabase_auth_admin`; toda RPC ainda confere o perfil na hora |
+| policy interna com nome livre | policy `tenant_isolation_select` no padrão do TMS **+** a permissão | o pgTAP 00032 do TMS exige esse nome/forma em toda tabela com `tenant_id` |
+| motorista lê perfil/contas/documentos direto (própria linha) | sem grant nessas tabelas; leitura pelas RPCs `app_motorista_contexto`, `_minhas_contas`, `_meus_documentos` | mesmo padrão LGPD do TMS (`colaboradores`/`condutores`); contas saem mascaradas |
+| partições de GPS em schema próprio | partições no `public`, cada uma com RLS e policy no padrão, sem grants | o pgTAP 00032 do TMS monta `'public.'||tabela` para toda tabela com `tenant_id` |
+| trigger de validação só em `portal`/`tenant_id` | também em `role_id` | impede trocar o perfil de um motorista para admin sem trocar o portal |
+| 20 tabelas | 23: + `app_motorista_config`, `app_motorista_arquivos` (hash dos anexos), `app_motorista_tentativas_login` | parâmetros por tenant; prova de assinatura; limite de tentativas de login |
 
 ## 1. Estado atual (lido do banco em 2026-09-25)
 
@@ -83,13 +98,12 @@ Todas pequenas e aditivas. É a lista completa do que o app altera fora do prefi
 
 | objeto | mudança | risco para o TMS |
 |---|---|---|
-| `users_portal_check` | aceitar `'app-motorista'` | nenhum (aditivo) |
-| `users_valida_portal_tenant()` | `app-motorista` só em tenant `plataforma`; `app-motorista` ⇔ papel `motorista_terceiro` (nos dois sentidos: fecha a brecha de hoje, em que o papel pode ser vinculado com `interno`) | baixo: só rejeita combinações inválidas |
-| `custom_access_token_hook` (ou `auth-hook-claims`) | ramo `app-motorista` (§3); ramos atuais inalterados | médio: é o login de todo mundo → coberto por teste pgTAP dos três portais |
-| `roles` (`motorista_terceiro`) | `portal` passa de `interno` para `app-motorista` | nenhum (sem usuários) |
-| `mensagens_ticket_autor_tipo_check` | aceitar `'motorista'` | nenhum (aditivo); telas do TMS que exibem autor precisam de um rótulo para esse valor |
-| `proximo_codigo` | nova sobrecarga `proximo_codigo(p_tenant uuid, p_prefixo text)`, **sem** `grant` para `authenticated` (uso interno das RPCs `security definer`); a versão atual passa a delegar a ela | nenhum (mesmo comportamento) |
+| `users_portal_check`, `roles_portal_check` | aceitar `'app-motorista'` | nenhum (aditivo) |
+| `users_valida_portal_tenant()` + trigger | `app-motorista` só em tenant `plataforma`; `app-motorista` ⇔ papel `motorista_terceiro` (nos dois sentidos: fecha a brecha de hoje, em que o papel pode ser vinculado com `interno`); trigger passa a disparar também em `role_id` | baixo: só rejeita combinações inválidas |
+| `custom_access_token_hook` (função SQL — o hook oficial do TMS; `auth-hook-claims` é órfã) | ramo `app-motorista` (§3); ramos atuais inalterados | médio: é o login de todo mundo → os 1000 testes do TMS (incl. `00002` do hook) passam com a mudança |
+| `roles` (`motorista_terceiro`) | `portal` passa de `interno` para `app-motorista` | nenhum (sem usuários; perfil reservado ao app desde a B0.6) |
 | `leitura_auditada` | 3 linhas novas (§6) | nenhum |
+| `tms_veiculos.hodometro_km` (dado, não estrutura) | as RPCs de checklist só **aumentam** o hodômetro do veículo da rota | nenhum |
 
 **Nenhuma das 540 policies existentes é alterada.**
 

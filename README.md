@@ -1,62 +1,45 @@
-# Base44 Project
+# NGS Driver — App do Motorista
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+App operacional do motorista da NGS Transportes (rota do dia, entregas, insucessos,
+recibos, suporte e emergência). React + Vite, dados no **mesmo projeto Supabase do TMS**
+(sistema operacional). Migrado do Base44 — ver `MIGRATION_REPORT.md`.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-## Prerequisites
-
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
-5. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) — the local Base44 backend runs on it.
-
-Run `base44 --help` (or see the [CLI reference](https://docs.base44.com/developers/references/cli/commands/introduction)) for the full command surface.
-
-## Run Locally
-
-Three commands, from the project root:
+## Rodar localmente
 
 ```bash
-base44 login   # one-time per machine
-base44 link    # one-time per clone
-base44 dev     # local backend + frontend together
+cp .env.example .env.local   # preencha VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY
+npm install
+npm run dev
 ```
 
-Open the frontend URL that `base44 dev` prints (typically `http://localhost:5173`).
+Sem as variáveis do Supabase o app abre uma tela explicando o que falta.
 
-Notes:
+## Verificações
 
-- **Every fresh clone needs `base44 link`.** It writes `base44/.app.jsonc` (the app-id pointer), which is deliberately gitignored. Your app id is in the Builder URL (`app.base44.com/apps/<id>/...`); `base44 link --help` shows the non-interactive flags.
-- **`base44 dev` runs the frontend for you** (via `site.serveCommand` in this repo's `base44/config.jsonc`) — never run `npm run dev` yourself: alone it serves a UI with no backend behind it (`[base44] Proxy not enabled`, every `/api` call fails), and alongside `base44 dev` the second Vite silently takes the next port and you end up looking at the wrong one.
-- **The app must be published at least once for the UI to load under `base44 dev`.** The frontend boots by fetching app settings from the hosted app; before the first publish that fails and every page redirects to login. The local API works regardless.
-- Entities, functions, and auth run locally — entity data is **in-memory only**, wiped when `base44 dev` restarts. Everything else (Core integrations, OAuth login) is forwarded to your deployed app. Full breakdown: [Local development overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview).
+| comando | o quê |
+|---|---|
+| `npm run lint` | ESLint |
+| `npm test` | Vitest (fila offline) |
+| `npm run build` | build de produção |
+| `npm run test:db` | pgTAP do app **e do TMS** num Postgres local (precisa do repositório do TMS em `../ngs_transportes` ou `TMS_DIR=...`, e de Postgres 16+ com pgTAP) |
+| `npm run test:edge` | testes Deno das Edge Functions |
 
-## Frontend Only, Hosted Backend
+## Estrutura
 
-To work on just the frontend against your app's live hosted backend:
+| pasta | conteúdo |
+|---|---|
+| `src/api/app-motorista/` | camada de dados (leitura por RLS, escrita por RPC) |
+| `src/lib/offlineQueue.js`, `syncEngine.js` | fila offline idempotente |
+| `supabase/migrations/` | schema, RLS e RPCs do app (lotes A–E) |
+| `supabase/functions/` | Edge Functions `app-motorista-login` e `app-motorista-arquivos` |
+| `supabase/tests/` | pgTAP e o runner local |
+| `docs/` | desenho, decisões, pendências, operação e tokens de design |
 
-```bash
-base44 dev --remote
-```
+## Documentos
 
-⚠️ In this mode writes go to your app's **production data** — plain `base44 dev` keeps everything local.
-
-## Publish Your Changes
-
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
-
-## Docs & Support
-
-GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
-
-Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+- `docs/ARQUITETURA_APP_MOTORISTA.md` — como o app funciona
+- `docs/RBAC_RLS_APP_MOTORISTA.md` — acesso e isolamento
+- `docs/MIGRACAO_ENTIDADES_BASE44.md` — tabelas
+- `docs/OPERACAO_APP_MOTORISTA.md` — publicar e operar
+- `docs/DESIGN_TOKENS_APP.md` — identidade visual (não alterar)
+- `docs/DECISIONS.md`, `docs/OPEN_QUESTIONS.md`

@@ -1,6 +1,9 @@
 # Migração de entidades — Base44 → Supabase compartilhado (TMS)
 
-Status: **desenho final para validação — nenhuma migration criada, banco não alterado.**
+Status: **implementado** em `supabase/migrations/20260928100100_app_motorista_b_schema.sql` (colunas
+conforme este documento) — **banco hospedado ainda não alterado**. Acréscimos da implementação: 23
+tabelas no total (+ `app_motorista_config`, `app_motorista_arquivos`, `app_motorista_tentativas_login`),
+partições de GPS no `public`; ver a tabela de ajustes em `docs/RBAC_RLS_APP_MOTORISTA.md`.
 
 Documentos irmãos: `docs/RBAC_RLS_APP_MOTORISTA.md` (acesso),
 `docs/ARQUITETURA_APP_MOTORISTA.md` (cliente, offline, arquivos, auth),

@@ -1,6 +1,6 @@
 # Arquitetura — app do motorista (ngs-driver) sobre o Supabase do TMS
 
-Status: **desenho para validação.** Nada foi implementado nem aplicado no banco.
+Status: **implementado** (frontend, Edge Functions, migrations e testes neste repositório) — banco hospedado **ainda não alterado** (ver `docs/OPERACAO_APP_MOTORISTA.md`).
 Complementa `docs/MIGRACAO_ENTIDADES_BASE44.md` (dados) e `docs/RBAC_RLS_APP_MOTORISTA.md`
 (acesso).
 
@@ -42,10 +42,10 @@ Princípios:
 |---|---|---|
 | Login por CPF/matrícula | `DriverProfile.list()` **antes de autenticar** (baixa o cadastro de todos os motoristas para o aparelho e procura o CPF no cliente — bug B-01) + `loginViaEmailPassword` | Edge Function `app-motorista-login`: recebe `{identificador, senha}`, resolve CPF/matrícula → e-mail no servidor (`service_role`), chama `signInWithPassword` e devolve a sessão. Erro sempre genérico ("credenciais inválidas"), sem revelar se o CPF existe. Limite de tentativas por IP e por identificador (OQ-14). |
 | Login por e-mail | `loginViaEmailPassword` | `supabase.auth.signInWithPassword` direto |
-| Google | `loginWithProvider('google')` | `supabase.auth.signInWithOAuth({provider:'google'})` — só entra se o e-mail do Google for o de uma conta já vinculada; senão cai em `user_not_registered` (OQ-15: manter ou remover) |
+| Google | `loginWithProvider('google')` | **removido** (botão fora da tela): o TMS tirou o Google do escopo em 26/09; contas criadas por Google ficariam sem cadastro |
 | Esqueci a senha (`/forgot`) | **simulação**: a tela de 3 passos (identificação → código → nova senha) aceita qualquer código de 6 dígitos e não chama backend (bug B-04) | mesma tela, mesmos 3 passos: (1) `resetPasswordForEmail` com o template de e-mail de recuperação mostrando o código `{{ .Token }}` (o identificador CPF/matrícula é resolvido pela Edge Function de login, rota `/recuperar`); (2) `verifyOtp({ email, token, type: 'recovery' })`; (3) `updateUser({ password })` |
 | Redefinir senha por link | `ResetPassword.jsx` (**sem rota** no `App.jsx`) | desnecessário com o fluxo por código acima; remover (ou manter como destino de link, OQ-16) |
-| Cadastro (`Register.jsx`) | **sem rota** no `App.jsx` | fica fora: motorista é cadastrado pela central (`app_motorista_vincular_motorista`). Se o autocadastro for desejado: `signUp` + `verifyOtp`, e o usuário fica em `user_not_registered` até a central vincular (OQ-16) |
+| Cadastro (`Register.jsx`) | **sem rota** no `App.jsx` | **removido**: motorista é cadastrado pela central (`app_motorista_vincular_motorista`) |
 | Consentimento OAuth (`OAuthConsent.jsx`) | tela do servidor MCP do Base44, **sem rota** | **removida** (recurso da plataforma Base44) |
 | Sessão / logout | `auth.me`, `logout` | `getSession`, `onAuthStateChange`, `signOut` |
 
@@ -118,32 +118,32 @@ crescente + idempotência, com o Supabase simulado.
 - Rastreio em segundo plano: no PWA, o navegador suspende o GPS com a tela bloqueada.
   Rastreio real em segundo plano exige a casca nativa (Fase 4, Expo/Capacitor), que também
   resolve câmera e leitura de código de barras nativas.
-- **Roteamento:** `useRouteNavigation` usa `router.project-osrm.org`, o servidor de
-  **demonstração** do OSRM, cuja política proíbe uso em produção e que não tem SLA.
-  Precisa de um provedor (OSRM próprio, Mapbox, Google, HERE) — OQ-18.
-- Mapas: tiles do OpenStreetMap (`tile.openstreetmap.org`) e Carto (`basemaps.cartocdn.com`).
-  A política de uso de tiles do OSM também não cobre uso intenso de apps; mesma pendência
-  (OQ-18). Mapas offline (`OfflineMaps.jsx`) dependem dessa escolha.
+- **Roteamento (decidido):** Mapbox Directions (`driving-traffic`), o mesmo provedor que o
+  TMS já adotou (`VITE_MAPBOX_PUBLIC_TOKEN`). A resposta tem o formato do OSRM, então só
+  `src/lib/routing.js` mudou. O servidor de demonstração do OSRM fica só para desenvolvimento
+  sem token (`src/lib/mapProvider.js`).
+- Mapas (decidido): tiles do Mapbox (`streets-v12` / `dark-v11`) com a atribuição exigida;
+  sem token, contingência nos tiles anteriores (OSM/Carto) para o mapa não ficar em branco.
+  Mapas offline (`OfflineMaps.jsx`) continuam como estavam (tela de preferência).
 
 ## 6. Arquivos (R2 + `documents`)
 
-Edge Function **`app-motorista-arquivos`** (Deno, `service_role`, `verify_jwt = true`):
+Edge Function **`app-motorista-arquivos`** (`supabase/functions/`, `verify_jwt = true`):
 
 | rota | entrada | faz |
 |---|---|---|
-| `POST /upload` | `{entity_table, entity_id?, mime_type, size_bytes, sha256}` | valida portal/dono/tipo/tamanho; cria a linha em `documents` (`r2_key` no padrão do RBAC §7, `uploaded_by = auth.uid()`); devolve `{documento_id, url_put}` (URL pré-assinada do R2, 5 min) |
-| `POST /download` | `{documento_id}` | valida que o documento é do motorista (ou de uma entidade dele); devolve URL GET pré-assinada (5 min) |
+| `POST /upload` | bytes do arquivo + cabeçalho `x-tipo` (finalidade) | confere claims (portal `app-motorista`) e cadastro ativo; descobre o tipo **real** pelos primeiros bytes (PNG/JPEG/WebP/PDF), aplica o limite da finalidade (assinatura ≤ 512 KB, PNG); calcula o SHA-256; grava no R2 com PUT feito **pelo servidor**; registra `documents` e `app_motorista_arquivos`. Devolve `{documentoId, sha256}` |
+| `POST /download` | `{documentoId}` | só arquivo enviado pelo próprio motorista, ou PDF/documento ligado a recibo/documento pessoal dele; devolve GET pré-assinado (5 min) |
 
-O aparelho faz `PUT` direto no R2 (o arquivo não passa pela Edge Function). `entity_id` pode
-ser nulo no upload (a foto é enviada antes do comprovante existir); a RPC que cria o
-comprovante preenche `documents.entity_id` dos anexos que recebeu e rejeita anexo de outro
-motorista.
+Mudança em relação ao desenho: o aparelho **não** recebe URL de escrita no R2. Os bytes
+passam pela função para que o hash gravado como prova (assinatura de entrega e de recibo)
+seja o dos bytes realmente armazenados — com PUT direto o servidor nunca veria o arquivo.
+Fotos são reduzidas no aparelho para ≤ 1600 px antes do envio.
 
-Segredos (Supabase → Edge Functions → Secrets): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
-`R2_SECRET_ACCESS_KEY`, `R2_BUCKET`. Não existe hoje nenhuma função de R2 no projeto (só
-`auth-hook-claims`); se o TMS já tiver código de R2 em outro repositório, reaproveitar (OQ-19).
-
-Substitui: `Core.UploadPrivateFile` (4 usos) e `Core.CreateFileSignedUrl` (2 usos).
+O assinador SigV4 é o do TMS (`_shared/arquivos/r2.ts`, copiado com referência de origem).
+Segredos: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_DOCUMENTOS`
+(os mesmos do TMS). As RPCs só aceitam anexos de `app_motorista_arquivos` do próprio
+motorista, do tipo esperado e ainda não usados.
 
 ## 7. Onde fica o código do backend
 

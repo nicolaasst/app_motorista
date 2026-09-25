@@ -1,28 +1,46 @@
 # Perguntas em aberto — app do motorista
 
-Cada item tem uma **proposta padrão**. Se não houver objeção, a proposta vale quando a
-implementação chegar ao ponto indicado. Itens marcados com 🔒 bloqueiam a primeira migration.
+Atualizado em 2026-09-25, depois da implementação. **Resolvida** = decidida e implementada;
+**padrão** = implementada com a proposta padrão (pode ser mudada depois); **aberta** = depende
+de decisão.
 
-| id | pergunta | proposta padrão | bloqueia |
+| id | tema | status | como ficou |
 |---|---|---|---|
-| OQ-01 🔒 | Qual hook de claims está ativo no Auth do projeto: a função SQL `public.custom_access_token_hook` ou a Edge Function `auth-hook-claims`? (A configuração do Auth não é legível via SQL.) | Ver em Supabase → Authentication → Hooks. A mudança do portal `app-motorista` vai para o que estiver ativo; se for a Edge Function, preciso do código-fonte dela (está no repositório do TMS). | migration de RBAC |
-| OQ-02 🔒 | Todo motorista pertence ao tenant plataforma (`NEXUSLOG`)? Ou existirão motoristas de transportadoras parceiras em tenants próprios? | Todos no tenant plataforma. O trigger `users_valida_portal_tenant` só aceitará `app-motorista` em tenant `plataforma`. | migration de RBAC |
-| OQ-03 | Raio do geofence da entrega/insucesso. | 150 m, configurável por tenant. Fora do raio **não bloqueia** a entrega: grava `dentro_geofence = false` e a torre vê. | Fase 3 |
-| OQ-04 | Como a rota chega ao app? `rotas_roteirizador.paradas` é `jsonb` de tela, sem id estável por parada e sem volumes. | RPC interna `app_motorista_publicar_rota` (permissão `tms.operar`) materializa rota + paradas + volumes; a estrutura exata de `paradas` e a origem dos volumes (etiquetas/pedidos) precisam ser confirmadas com o TMS. Até lá, seed de desenvolvimento. | publicação de rotas (não bloqueia o schema) |
-| OQ-05 | CNH e dados cadastrais aparecem em três lugares: `app_motorista_perfis` (completo), `motoristas_agregados` e `condutores` (projeções de tela, CPF mascarado). Quem é a fonte? | `app_motorista_perfis` é a fonte dos dados pessoais completos; o TMS continua exibindo suas projeções. Normalizar o cadastro de motorista é trabalho do TMS. | não |
-| OQ-06 | Paradas e volumes referenciam pedidos/etiquetas de tenants **cliente** (outro tenant); FK composta não se aplica. | Guardar `pedido_tenant_id` + `pedido_id` / `etiqueta_tenant_id` + `etiqueta_codigo` sem FK, validados pela RPC de publicação de rota. | não |
-| OQ-07 | Retenção de dados de localização (LGPD). | Pontos GPS: 180 dias (partições mensais apagadas por job). `app_motorista_operacoes`: 90 dias. Comprovantes: sem expiração (prova de entrega). | não |
-| OQ-08 | Push para o celular: `notification_log.canal` só aceita `email` e `whatsapp`. | Fase 4: acrescentar `push` ao CHECK (mudança aditiva no TMS) e um worker FCM/APNs; até lá, o app lê `app_motorista_notificacoes` ao abrir e a cada 60 s. | não |
-| OQ-09 | A partir de quantos dias um documento pessoal fica "vencendo"? | 30 dias. | não |
-| OQ-10 | Hoje `ProfileEdit` permite ao motorista trocar o próprio **nome completo**. | Motorista edita só telefone, e-mail pessoal, endereço e contato de emergência. Nome, CPF, CNH e matrícula mudam pela central (`rh.editar`). O campo nome fica somente leitura, **sem mudança visual** além de desabilitado. | não |
-| OQ-11 | Suspender um motorista vale só no próximo refresh do token (até 1 h). | Aceitável; além disso, toda RPC confere `situacao_cadastro = 'ativo'` a cada chamada, o que bloqueia escrita na hora. | não |
-| OQ-12 | Exclusão de conta (LGPD): o que é apagado e o que é mantido por obrigação legal (comprovantes, recibos)? | Anonimizar o perfil (nome, CPF, contatos, conta bancária, avatar); manter comprovantes e recibos com referência ao `user_id`. Precisa de validação jurídica. | não |
-| OQ-13 | Tamanho máximo e tipos de arquivo. | 10 MB; JPEG, PNG, WebP e PDF. Fotos redimensionadas no aparelho para no máximo 1600 px antes do envio. | não |
-| OQ-14 | Limite de tentativas de login por CPF/matrícula. | 5 tentativas por identificador a cada 15 min e 20 por IP a cada 15 min (tabela de controle usada pela Edge Function). | não |
-| OQ-15 | Manter "Entrar com Google"? | Remover: o motorista é cadastrado pela central com e-mail corporativo; Google cria contas órfãs (`user_not_registered`). Mudança visual: some o botão. **Pede confirmação**, por ser alteração de tela. | não |
-| OQ-16 | Autocadastro (`Register.jsx`) e redefinição por link (`ResetPassword.jsx`) estão sem rota hoje. | Não reativar. Remover os arquivos na migração. | não |
-| OQ-17 | "Lembrar login" desligado deve encerrar a sessão ao fechar o app? | Sim: sessão em `sessionStorage` quando desligado. | não |
-| OQ-18 | Provedor de rotas e de mapas para produção (hoje: servidor de **demonstração** do OSRM e tiles públicos do OSM, que não podem ser usados em produção). | Decisão de produto/custo. Sugestões: OSRM próprio (custo de infraestrutura, sem custo por chamada) ou Mapbox/Google (custo por uso, com mapas offline oficiais). | Fase 4 (publicação) |
-| OQ-19 | O TMS já tem código de acesso ao R2 (upload/URL assinada) em outro repositório? | Se tiver, reaproveitar na Edge Function `app-motorista-arquivos`; se não, escrever do zero com a API S3 do R2. | Edge Function de arquivos |
-| OQ-20 🔒 | Ordem das migrations no banco compartilhado: o repositório do TMS continua criando migrations em paralelo. | Migrations do app com timestamp posterior à última aplicada no momento, conferida com `list_migrations` imediatamente antes; a migration das mudanças compartilhadas (RBAC §4) é revisada por quem mantém o TMS. | primeira migration |
-| OQ-21 | Como a central é alertada de uma emergência? | Realtime em `app_motorista_emergencias` para a tela da torre (a publicação `supabase_realtime` hoje está vazia) **e** envio por `notification_log` (WhatsApp) para o plantão definido em `automacao_niveis_plantao`. | Fase 3 |
+| OQ-01 | qual hook de claims está ativo | **resolvida** | o repositório do TMS define a função SQL `public.custom_access_token_hook` como hook oficial (`supabase/config.toml` e `docs/AMBIENTES.md` do TMS); a Edge Function `auth-hook-claims` é órfã. A migration A altera a função SQL. Conferir no Dashboard que ela está selecionada (Authentication > Hooks) |
+| OQ-02 | tenant dos motoristas | **resolvida** | todos no tenant plataforma; o trigger recusa `app-motorista` em tenant `cliente` |
+| OQ-03 | raio do geofence | padrão | 150 m, por tenant em `app_motorista_config.raio_geofence_m`; fora do raio **não bloqueia**, fica registrado (`dentro_geofence = false`) |
+| OQ-04 | como a rota chega ao app | **aberta (integração do TMS)** | RPC `app_motorista_publicar_rota` pronta, com formato explícito (`docs/OPERACAO_APP_MOTORISTA.md` §5). Falta o TMS chamar a partir do roteirizador (`rotas_roteirizador.paradas` é `jsonb` de tela, sem volumes) |
+| OQ-05 | fonte do cadastro do motorista (CNH etc.) | padrão | `app_motorista_perfis` guarda o cadastro completo; o TMS segue com as projeções dele |
+| OQ-06 | pedidos/etiquetas de outro tenant | padrão | referência sem FK (`pedido_tenant_id` + `pedido_id`, `etiqueta_tenant_id` + `etiqueta_codigo`) |
+| OQ-07 | retenção de localização (LGPD) | padrão | GPS 180 dias (configurável), idempotência 90 dias; rotina mensal em `docs/OPERACAO_APP_MOTORISTA.md` §1.3 até haver `pg_cron` |
+| OQ-08 | push no celular | aberta (Fase 4) | `notification_log` só aceita `email`/`whatsapp`; hoje o app lê a caixa de entrada ao abrir. Push entra com a casca nativa |
+| OQ-09 | prazo de "documento vencendo" | padrão | 30 dias, configurável |
+| OQ-10 | motorista editar o próprio nome | **resolvida** | campo "Nome Completo" somente leitura, com a dica "fale com a central"; nome/CPF/CNH/matrícula só pela central |
+| OQ-11 | suspensão e token ainda válido | **resolvida** | toda RPC confere o cadastro na hora (teste pgTAP cobre token antigo de motorista suspenso) |
+| OQ-12 | exclusão de conta (LGPD) | aberta (jurídico) | o app abre chamado padronizado; a anonimização pela central ainda não tem RPC — precisa de validação jurídica do que manter (comprovantes, recibos) |
+| OQ-13 | tamanho e tipos de arquivo | padrão | fotos/anexos ≤ 10 MB (JPEG/PNG/WebP; anexos também PDF), assinatura ≤ 512 KB (PNG), tipo conferido pelos bytes; fotos reduzidas a 1600 px no aparelho |
+| OQ-14 | limite de tentativas de login | padrão | 5 por CPF/matrícula e 20 por IP a cada 15 min, por contexto (login, envio de código, verificação) |
+| OQ-15 | "Entrar com Google" | **resolvida** | removido (o TMS tirou o Google do escopo em 26/09) |
+| OQ-16 | autocadastro e redefinição por link | **resolvida** | removidos; recuperação por código em 3 passos |
+| OQ-17 | "Lembrar de mim" desligado | **resolvida** | sessão em `sessionStorage` (encerra ao fechar) |
+| OQ-18 | mapas e rotas em produção | **resolvida** | Mapbox (o mesmo do TMS); falta criar o token público restrito por URL |
+| OQ-19 | código de R2 no TMS | **resolvida** | reaproveitado o assinador SigV4 do TMS (`_shared/arquivos/r2.ts`) |
+| **OQ-20** | **quem é dono do histórico de migrations do banco compartilhado** | **aberta — precisa de você** | ver abaixo |
+| OQ-21 | alerta ativo de emergência para a central | aberta (TMS) | dados e RPC de tratamento prontos; falta a tela/alerta do lado do TMS (Realtime e/ou WhatsApp para o plantão) |
+
+## OQ-20 — decisão pendente antes de aplicar no banco
+
+O banco é um só para os dois repositórios. As migrations do app estão em
+`supabase/migrations/` **deste** repositório; as do TMS, no repositório do TMS. Se o TMS
+algum dia usar `supabase db push`/`migration list` contra o hospedado, a CLI vai reclamar das
+versões do app que não existem na pasta dele (e vice-versa).
+
+Opções:
+1. **Recomendado:** este repositório continua sendo a fonte das migrations do app, e cada
+   migration do app é **também** copiada (mesmo nome) para `supabase/migrations/` do TMS
+   por PR lá, antes de ser aplicada. O TMS continua sendo o dono do histórico do banco; o CI
+   do TMS passa a rodar o pgTAP do app junto (garante que nenhuma mudança do TMS quebre o app).
+2. Aplicar só daqui (sem cópia no TMS) e nunca usar `db push` no TMS — mais simples hoje,
+   mas frágil.
+
+Nada foi aplicado no hospedado; a decisão define como fazer.
