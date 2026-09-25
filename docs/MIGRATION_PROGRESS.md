@@ -1,13 +1,39 @@
 # MIGRATION_PROGRESS — ngs-driver (Base44 → Supabase)
 
-## Status: ✅ Regra 0 cumprida · 🟡 Fase 1 em rascunho (`docs/MIGRACAO_ENTIDADES_BASE44.md`), aguardando decisões D1–D4
+## Status: ✅ Regra 0 · ✅ Fase 1 (desenho) concluída — aguardando validação do responsável
+
+**O banco não foi alterado** (decisão D6). Todo acesso ao Supabase até aqui foi somente leitura.
+
+### Documentos da Fase 1
+
+| documento | conteúdo |
+|---|---|
+| `docs/MIGRACAO_ENTIDADES_BASE44.md` | 21 entidades → 20 tabelas `app_motorista_*` + objetos do TMS referenciados, coluna a coluna |
+| `docs/RBAC_RLS_APP_MOTORISTA.md` | claims, portal `app-motorista`, policies, matriz de acesso, RPCs, LGPD, plano pgTAP |
+| `docs/ARQUITETURA_APP_MOTORISTA.md` | auth, camada de dados, offline/idempotência, GPS, R2, emergência, dependências do Base44 |
+| `docs/DESIGN_TOKENS_APP.md` | 75 tokens de cor (claro/escuro), tipografia, raios, sombras — transcrição fiel |
+| `docs/DECISIONS.md` | D1–D6 do responsável; D7–D12 propostas técnicas em validação |
+| `docs/OPEN_QUESTIONS.md` | OQ-01 a OQ-21 com proposta padrão; OQ-01, OQ-02 e OQ-20 bloqueiam a 1ª migration |
+
+### Bugs encontrados no código do app (corrigidos na Fase 2, sem mudança visual)
+
+| id | onde | problema |
+|---|---|---|
+| B-01 | `src/pages/Login.jsx:42` | Antes de autenticar, baixa **todos** os `DriverProfile` (CPF, e-mails) para o aparelho, para achar o e-mail pelo CPF/matrícula. Vazamento de dados pessoais. |
+| B-02 | `src/pages/ConfirmDelivery.jsx:98-121`, `src/lib/offlineQueue.js:198` | Comprovante de entrega grava `signature_png: ""` (a assinatura desenhada é descartada) e `lat/lng` **da parada**, não do aparelho (`accuracy_m: null`). A prova de entrega não tem assinatura nem localização real. |
+| B-03 | `src/pages/ReceiptDetail.jsx:55` | "Hash" da assinatura do recibo é `btoa(assinatura).slice(0, 32)`, calculado no cliente — não é hash e pode ser forjado. O cliente também define `status: "assinado"`. |
+| B-04 | `src/pages/ForgotPassword.jsx:28` | Recuperação de senha simulada: aceita qualquer código de 6 dígitos e não chama backend. |
+| B-05 | `src/lib/offlineQueue.js:196-260` | Comprovante + atualização da parada em duas chamadas sem idempotência (reenvio duplica o comprovante); GPS por leitura-modificação-escrita de um array na rota (corrida, crescimento sem limite). |
+| B-06 | `src/lib/driver.js:7` | Motorista atual = `profiles[0]`, com fallback fixo `"seed-driver-lucas"`. |
+
+### Verificação da Regra 0
 
 | data | commit do `main` | resultado |
 |---|---|---|
 | 2026-09-25 | `bd2ddd3` | ⛔ export corrompido: 83 arquivos comprometidos (30 vazios, 49 com erro de sintaxe, 4 truncados), incluindo `index.html`, 21/23 telas, entidades `Route`/`Stop`/`DriverProfile` e os design tokens. Migração parada. |
 | 2026-09-25 | `59aa58c` | ✅ novo upload do Base44 íntegro (detalhes abaixo). |
 
-## Verificação do `59aa58c`
+#### Verificação do `59aa58c`
 
 - **Nenhum arquivo vazio.** Os 30 arquivos que estavam vazios agora têm conteúdo (ex.:
   `AuthContext.jsx` 148 linhas, `offlineQueue.js` 303, `geo.js` 147, `useDriverTracking.js` 173).

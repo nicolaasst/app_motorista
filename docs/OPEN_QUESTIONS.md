@@ -1,0 +1,28 @@
+# Perguntas em aberto — app do motorista
+
+Cada item tem uma **proposta padrão**. Se não houver objeção, a proposta vale quando a
+implementação chegar ao ponto indicado. Itens marcados com 🔒 bloqueiam a primeira migration.
+
+| id | pergunta | proposta padrão | bloqueia |
+|---|---|---|---|
+| OQ-01 🔒 | Qual hook de claims está ativo no Auth do projeto: a função SQL `public.custom_access_token_hook` ou a Edge Function `auth-hook-claims`? (A configuração do Auth não é legível via SQL.) | Ver em Supabase → Authentication → Hooks. A mudança do portal `app-motorista` vai para o que estiver ativo; se for a Edge Function, preciso do código-fonte dela (está no repositório do TMS). | migration de RBAC |
+| OQ-02 🔒 | Todo motorista pertence ao tenant plataforma (`NEXUSLOG`)? Ou existirão motoristas de transportadoras parceiras em tenants próprios? | Todos no tenant plataforma. O trigger `users_valida_portal_tenant` só aceitará `app-motorista` em tenant `plataforma`. | migration de RBAC |
+| OQ-03 | Raio do geofence da entrega/insucesso. | 150 m, configurável por tenant. Fora do raio **não bloqueia** a entrega: grava `dentro_geofence = false` e a torre vê. | Fase 3 |
+| OQ-04 | Como a rota chega ao app? `rotas_roteirizador.paradas` é `jsonb` de tela, sem id estável por parada e sem volumes. | RPC interna `app_motorista_publicar_rota` (permissão `tms.operar`) materializa rota + paradas + volumes; a estrutura exata de `paradas` e a origem dos volumes (etiquetas/pedidos) precisam ser confirmadas com o TMS. Até lá, seed de desenvolvimento. | publicação de rotas (não bloqueia o schema) |
+| OQ-05 | CNH e dados cadastrais aparecem em três lugares: `app_motorista_perfis` (completo), `motoristas_agregados` e `condutores` (projeções de tela, CPF mascarado). Quem é a fonte? | `app_motorista_perfis` é a fonte dos dados pessoais completos; o TMS continua exibindo suas projeções. Normalizar o cadastro de motorista é trabalho do TMS. | não |
+| OQ-06 | Paradas e volumes referenciam pedidos/etiquetas de tenants **cliente** (outro tenant); FK composta não se aplica. | Guardar `pedido_tenant_id` + `pedido_id` / `etiqueta_tenant_id` + `etiqueta_codigo` sem FK, validados pela RPC de publicação de rota. | não |
+| OQ-07 | Retenção de dados de localização (LGPD). | Pontos GPS: 180 dias (partições mensais apagadas por job). `app_motorista_operacoes`: 90 dias. Comprovantes: sem expiração (prova de entrega). | não |
+| OQ-08 | Push para o celular: `notification_log.canal` só aceita `email` e `whatsapp`. | Fase 4: acrescentar `push` ao CHECK (mudança aditiva no TMS) e um worker FCM/APNs; até lá, o app lê `app_motorista_notificacoes` ao abrir e a cada 60 s. | não |
+| OQ-09 | A partir de quantos dias um documento pessoal fica "vencendo"? | 30 dias. | não |
+| OQ-10 | Hoje `ProfileEdit` permite ao motorista trocar o próprio **nome completo**. | Motorista edita só telefone, e-mail pessoal, endereço e contato de emergência. Nome, CPF, CNH e matrícula mudam pela central (`rh.editar`). O campo nome fica somente leitura, **sem mudança visual** além de desabilitado. | não |
+| OQ-11 | Suspender um motorista vale só no próximo refresh do token (até 1 h). | Aceitável; além disso, toda RPC confere `situacao_cadastro = 'ativo'` a cada chamada, o que bloqueia escrita na hora. | não |
+| OQ-12 | Exclusão de conta (LGPD): o que é apagado e o que é mantido por obrigação legal (comprovantes, recibos)? | Anonimizar o perfil (nome, CPF, contatos, conta bancária, avatar); manter comprovantes e recibos com referência ao `user_id`. Precisa de validação jurídica. | não |
+| OQ-13 | Tamanho máximo e tipos de arquivo. | 10 MB; JPEG, PNG, WebP e PDF. Fotos redimensionadas no aparelho para no máximo 1600 px antes do envio. | não |
+| OQ-14 | Limite de tentativas de login por CPF/matrícula. | 5 tentativas por identificador a cada 15 min e 20 por IP a cada 15 min (tabela de controle usada pela Edge Function). | não |
+| OQ-15 | Manter "Entrar com Google"? | Remover: o motorista é cadastrado pela central com e-mail corporativo; Google cria contas órfãs (`user_not_registered`). Mudança visual: some o botão. **Pede confirmação**, por ser alteração de tela. | não |
+| OQ-16 | Autocadastro (`Register.jsx`) e redefinição por link (`ResetPassword.jsx`) estão sem rota hoje. | Não reativar. Remover os arquivos na migração. | não |
+| OQ-17 | "Lembrar login" desligado deve encerrar a sessão ao fechar o app? | Sim: sessão em `sessionStorage` quando desligado. | não |
+| OQ-18 | Provedor de rotas e de mapas para produção (hoje: servidor de **demonstração** do OSRM e tiles públicos do OSM, que não podem ser usados em produção). | Decisão de produto/custo. Sugestões: OSRM próprio (custo de infraestrutura, sem custo por chamada) ou Mapbox/Google (custo por uso, com mapas offline oficiais). | Fase 4 (publicação) |
+| OQ-19 | O TMS já tem código de acesso ao R2 (upload/URL assinada) em outro repositório? | Se tiver, reaproveitar na Edge Function `app-motorista-arquivos`; se não, escrever do zero com a API S3 do R2. | Edge Function de arquivos |
+| OQ-20 🔒 | Ordem das migrations no banco compartilhado: o repositório do TMS continua criando migrations em paralelo. | Migrations do app com timestamp posterior à última aplicada no momento, conferida com `list_migrations` imediatamente antes; a migration das mudanças compartilhadas (RBAC §4) é revisada por quem mantém o TMS. | primeira migration |
+| OQ-21 | Como a central é alertada de uma emergência? | Realtime em `app_motorista_emergencias` para a tela da torre (a publicação `supabase_realtime` hoje está vazia) **e** envio por `notification_log` (WhatsApp) para o plantão definido em `automacao_niveis_plantao`. | Fase 3 |
