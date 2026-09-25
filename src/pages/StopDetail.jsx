@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { biparVolumes, novaChave, parada, rota as buscarRota, volumesDaParada } from "@/api/app-motorista";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
@@ -39,10 +39,10 @@ export default function StopDetail() {
   const [biping, setBiping] = useState(false);
 
   const load = async () => {
-    const stop = await base44.entities.Stop.get(id);
+    const stop = await parada(id);
     const [route, volumes] = await Promise.all([
-      base44.entities.Route.get(stop.route_id),
-      base44.entities.Volume.filter({ stop_id: id }, "created_date", 50),
+      buscarRota(stop.route_id),
+      volumesDaParada(id, 50),
     ]);
     setData({ stop, route, volumes });
   };
@@ -77,7 +77,7 @@ export default function StopDetail() {
     const prevVolumes = volumes;
     setData((d) => ({ ...d, volumes: d.volumes.map((x) => (x.id === v.id ? { ...x, scan_status: "bipado", scanned_at: now } : x)) }));
     try {
-      await base44.entities.Volume.update(v.id, { scan_status: "bipado", scanned_at: now });
+      await biparVolumes({ chave: novaChave(), paradaId: id, volumeIds: [v.id], lidoEm: now });
       await load();
     } catch {
       setData((d) => ({ ...d, volumes: prevVolumes }));
@@ -116,10 +116,7 @@ export default function StopDetail() {
       const prevVolumes = volumes;
       setData((d) => ({ ...d, volumes: d.volumes.map((x) => (matchedIds.has(x.id) ? { ...x, scan_status: "bipado", scanned_at: now } : x)) }));
       try {
-        await base44.entities.Volume.updateMany(
-          { stop_id: id, nf_number: code },
-          { $set: { scan_status: "bipado", scanned_at: now } }
-        );
+        await biparVolumes({ chave: novaChave(), paradaId: id, volumeIds: matched.map((m) => m.id), lidoEm: now });
         await load();
       } catch {
         setData((d) => ({ ...d, volumes: prevVolumes }));
@@ -147,7 +144,7 @@ export default function StopDetail() {
       const prevVolumes = volumes;
       setData((d) => ({ ...d, volumes: d.volumes.map((x) => (x.id === vol.id ? { ...x, scan_status: "bipado", scanned_at: now } : x)) }));
       try {
-        await base44.entities.Volume.update(vol.id, { scan_status: "bipado", scanned_at: now });
+        await biparVolumes({ chave: novaChave(), paradaId: id, volumeIds: [vol.id], lidoEm: now });
         await load();
       } catch {
         setData((d) => ({ ...d, volumes: prevVolumes }));

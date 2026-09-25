@@ -1,139 +1,105 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { claimsDoToken, supabase, supabaseConfigurado } from "@/api/supabaseClient";
+import { limparContexto, sair } from "@/api/app-motorista";
+import { definirUsuarioFila } from "@/lib/offlineQueue";
+
+// Autenticação pelo Supabase Auth (mesmo auth.users do TMS).
+// Contrato mantido para App.jsx/ProtectedRoute: user, isAuthenticated,
+// isLoadingAuth, authChecked, authError { type: 'auth_required' |
+// 'user_not_registered' | 'config_missing' }, logout, navigateToLogin.
+//
+// "Motorista" = sessão cujo JWT traz portal 'app-motorista' (claims do hook do
+// banco). Sessão válida sem essa claim (usuário do TMS, conta não vinculada ou
+// motorista suspenso) → user_not_registered. A interface só usa isso para
+// decidir a tela; quem garante o acesso é a RLS.
 
 const AuthContext = createContext();
+
+function motoristaDaSessao(session) {
+  if (!session) return null;
+  const claims = claimsDoToken(session.access_token);
+  if (claims?.portal !== "app-motorista" || !claims?.app_motorista_tenant_id) return { naoMotorista: true };
+  return { id: session.user.id, email: session.user.email, tenantId: claims.app_motorista_tenant_id };
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
-  useEffect(() => {
-    checkAppState();
+  const aplicar = useCallback((session) => {
+    const m = motoristaDaSessao(session);
+    if (!m) {
+      setUser(null);
+      setIsAuthenticated(false);
+      setAuthError(null);
+      definirUsuarioFila(null);
+      limparContexto();
+    } else if (m.naoMotorista) {
+      setUser({ id: session.user.id, email: session.user.email });
+      setIsAuthenticated(true);
+      setAuthError({ type: "user_not_registered", message: "Conta sem cadastro ativo de motorista" });
+      definirUsuarioFila(null);
+      limparContexto();
+    } else {
+      setUser(m);
+      setIsAuthenticated(true);
+      setAuthError(null);
+      definirUsuarioFila(m.id);
+    }
+    setIsLoadingAuth(false);
+    setAuthChecked(true);
   }, []);
 
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      try {
-        const publicSettings = await base44.app.getPublicSettings();
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
-
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
+  const checkUserAuth = useCallback(async () => {
+    if (!supabaseConfigurado) {
+      setAuthError({ type: "config_missing", message: "VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY ausentes" });
       setIsLoadingAuth(false);
       setAuthChecked(true);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+      return;
     }
-  };
+    setIsLoadingAuth(true);
+    const { data } = await supabase.auth.getSession();
+    aplicar(data.session);
+  }, [aplicar]);
 
-  const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
-  };
+  useEffect(() => {
+    checkUserAuth();
+    if (!supabaseConfigurado) return undefined;
+    const { data } = supabase.auth.onAuthStateChange((_evento, session) => {
+      // PASSWORD_RECOVERY / TOKEN_REFRESHED / SIGNED_IN / SIGNED_OUT: reavalia as claims.
+      aplicar(session);
+    });
+    return () => data.subscription.unsubscribe();
+  }, [aplicar, checkUserAuth]);
 
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
-  };
+  const logout = useCallback(async (shouldRedirect = true) => {
+    await sair();
+    if (shouldRedirect) window.location.assign("/login");
+  }, []);
+
+  const navigateToLogin = useCallback(() => {
+    const destino = window.location.pathname + window.location.search;
+    window.location.assign(`/login?returnTo=${encodeURIComponent(destino)}`);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      authChecked,
-      logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAuthenticated,
+        isLoadingAuth,
+        isLoadingPublicSettings: false,
+        authError,
+        authChecked,
+        logout,
+        navigateToLogin,
+        checkUserAuth,
+        checkAppState: checkUserAuth,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -142,7 +108,7 @@ export const AuthProvider = ({ children }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

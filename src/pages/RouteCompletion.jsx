@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { concluirRota, minhasRotas, novaChave, paradasDaRota, volumesDaRota } from "@/api/app-motorista";
 import { getDriver } from "@/lib/driver";
 import { Icon } from "@/components/rp/Icon";
 import { Card } from "@/components/rp/Card";
-import { LineArt } from "@/components/rp/LineArt";
 import { EmptyState } from "@/components/rp/EmptyState";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { EMPTY_VALUE } from "@/lib/utils";
@@ -26,17 +25,18 @@ export default function RouteCompletion() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [erro, setErro] = useState("");
+  const [chaveConclusao] = useState(() => novaChave());
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { driver, driverId } = await getDriver();
-      const routes = await base44.entities.Route.filter({ driver_id: driverId }, "-date", 5);
+      const [{ driver }, routes] = await Promise.all([getDriver(), minhasRotas({ limite: 5 })]);
       const route = routes[0];
       if (!route) { if (alive) setData({ none: true }); return; }
       const [stops, volumes] = await Promise.all([
-        base44.entities.Stop.filter({ route_id: route.id }, "sequence", 200),
-        base44.entities.Volume.filter({ route_id: route.id }, "-created_date", 400),
+        paradasDaRota(route.id, 200),
+        volumesDaRota(route.id, 400),
       ]);
       if (alive) setData({ driver, route, stops, volumes });
     })();
@@ -87,7 +87,14 @@ export default function RouteCompletion() {
     setSyncing(true);
     await syncNow();
     if (route.status === "em_operacao") {
-      await base44.entities.Route.update(route.id, { status: "concluida" });
+      try {
+        // Paradas não atendidas ficam como "reagendada" (a rota nunca fica presa).
+        await concluirRota({ chave: chaveConclusao, rotaId: route.id });
+      } catch (e) {
+        setSyncing(false);
+        setErro(e?.message || "Não foi possível concluir a rota. Tente novamente.");
+        return;
+      }
     }
     setSyncing(false);
     navigate("/turn-closing");
@@ -187,6 +194,7 @@ export default function RouteCompletion() {
           </Card>
         )}
 
+        {erro && <p className="text-center text-body-sm font-semibold text-destructive">{erro}</p>}
         <button
           onClick={proceed}
           disabled={syncing}

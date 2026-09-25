@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { atualizarPolyline } from "@/api/app-motorista";
 import { fetchRoute } from "@/lib/routing";
 import { alongRouteBearing, angleDiff, distanceToPolyline } from "@/lib/geo";
 
@@ -54,7 +54,7 @@ export function useRouteNavigation({
       if (routeId && leg.polyline && leg.polyline !== lastPolylineRef.current) {
         lastPolylineRef.current = leg.polyline;
         if (typeof navigator === "undefined" || navigator.onLine) {
-          base44.entities.Route.update(routeId, { polyline: leg.polyline }).catch(() => {});
+          atualizarPolyline(routeId, leg.polyline).catch(() => {});
         }
       }
     } catch {
@@ -85,7 +85,7 @@ export function useRouteNavigation({
         if (routeId && leg.polyline && leg.polyline !== lastPolylineRef.current) {
           lastPolylineRef.current = leg.polyline;
           if (typeof navigator === "undefined" || navigator.onLine) {
-            base44.entities.Route.update(routeId, { polyline: leg.polyline }).catch(() => {});
+            atualizarPolyline(routeId, leg.polyline).catch(() => {});
           }
         }
       })

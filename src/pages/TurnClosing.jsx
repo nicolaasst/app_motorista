@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { encerrarTurno, meuVeiculo, minhasRotas, novaChave, volumesDaRota } from "@/api/app-motorista";
 import { getDriver } from "@/lib/driver";
 import { Icon } from "@/components/rp/Icon";
 import { Card } from "@/components/rp/Card";
@@ -21,16 +21,19 @@ export default function TurnClosing() {
   const [odometer, setOdometer] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState("");
+  const [chave] = useState(() => novaChave());
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { driver, driverId } = await getDriver();
-      const routes = await base44.entities.Route.filter({ driver_id: driverId }, "-date", 5);
-      const route = routes[0];
-      const vehicles = await base44.entities.Vehicle.list();
-      const vehicle = vehicles.find((v) => v.id === route?.vehicle_id) || vehicles.find((v) => v.fleet === driver?.fleet) || vehicles[0];
-      const volumes = route ? await base44.entities.Volume.filter({ route_id: route.id }, "-created_date", 400) : [];
+      const [{ driver }, concluidas, recentes] = await Promise.all([
+        getDriver(),
+        minhasRotas({ status: ["concluida", "retorno_ok"], limite: 1 }),
+        minhasRotas({ limite: 1 }),
+      ]);
+      const route = concluidas[0] || recentes[0];
+      const [vehicle, volumes] = route ? await Promise.all([meuVeiculo(route.id), volumesDaRota(route.id, 400)]) : [null, []];
       if (alive) {
         setData({ driver, route, vehicle, volumes });
         const baseOdo = route?.odometer_end || vehicle?.last_odometer_km || 0;
@@ -49,18 +52,14 @@ export default function TurnClosing() {
     setSaving(true);
     const odo = Number(odometer);
     const items = ITEMS.map((it, i) => ({ key: it.key, label: it.label, ok: values[i], note: values[i] === false ? "Reprovado" : null }));
-    await base44.entities.VehicleChecklist.create({
-      route_id: data.route.id, type: "retorno", items, odometer_km: odo,
-      declaration_accepted: true, completed_at: new Date().toISOString(),
-    });
-    await base44.entities.Route.update(data.route.id, {
-      status: "encerrada", finished_at: new Date().toISOString(), odometer_end: odo,
-    });
-    if (data.vehicle && odo > (data.vehicle.last_odometer_km || 0)) {
-      await base44.entities.Vehicle.update(data.vehicle.id, { last_odometer_km: odo });
+    try {
+      // Checklist de retorno + encerramento + hodômetro do veículo numa transação no servidor.
+      await encerrarTurno({ chave, rotaId: data.route.id, itens: items, odometro: odo });
+      navigate("/");
+    } catch (e) {
+      setErro(e?.message || "Não foi possível encerrar o turno. Tente novamente.");
+      setSaving(false);
     }
-    setSaving(false);
-    navigate("/");
   };
 
   if (!data) return <div className="screen-pad pt-16"><div className="card h-40 animate-pulse" /><div className="card mt-4 h-32 animate-pulse" /></div>;
@@ -151,6 +150,7 @@ export default function TurnClosing() {
 
         <p className="flex items-center justify-center gap-1.5 text-label-sm font-semibold text-status-green-fg"><Icon name="sync" size={14} /> Sincronização em nuvem ativa • Pronto para envio</p>
 
+        {erro && <p className="mb-2 text-center text-body-sm font-semibold text-destructive">{erro}</p>}
         <button onClick={encerrar} disabled={!allOk || saving} className="rp-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary-container min-h-[52px] text-label-lg text-primary-foreground shadow-cta disabled:opacity-50">
           {saving ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <><Icon name="logout" size={20} /> Encerrar Turno e Liberar Veículo</>}
         </button>

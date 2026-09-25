@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { atualizarPerfil } from "@/api/app-motorista";
 import { getDriver } from "@/lib/driver";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
@@ -43,8 +43,8 @@ export default function ProfileEdit() {
     if (!driver?.id) return;
     setSaving(true);
     try {
-      await base44.entities.DriverProfile.update(driver.id, {
-        full_name: form.full_name,
+      // Nome, CPF, CNH e matrícula mudam só pela central (cadastro oficial).
+      await atualizarPerfil({
         phone: form.phone,
         email_personal: form.email_personal,
         address: form.address,
@@ -74,7 +74,7 @@ export default function ProfileEdit() {
         <Card>
           <p className="text-body-lg font-extrabold">Dados Pessoais</p>
           <div className="mt-3 space-y-3">
-            <Field label="Nome Completo" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} placeholder="Seu nome completo" />
+            <Field label="Nome Completo" value={form.full_name} readOnly hint="Para corrigir o nome, fale com a central." placeholder="Seu nome completo" />
             <MaskedInput label="Telefone" icon="call" mask={maskPhone} value={form.phone} onValue={(m) => set("phone", m)} inputMode="tel" placeholder="(11) 98765-4321" />
             <Field label="E-mail Pessoal" icon="mail" type="email" value={form.email_personal} onChange={(e) => set("email_personal", e.target.value)} placeholder="voce@email.com" />
             <div className="grid grid-cols-2 gap-3">

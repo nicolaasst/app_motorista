@@ -2,6 +2,7 @@ import { Fragment, useEffect } from "react";
 import { Circle, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { atribuicaoMapa, mapboxAtivo, urlTiles } from "@/lib/mapProvider";
 import { SEGMENT_TONES, buildSegments } from "@/lib/routeSegments";
 
 const STOP_COLORS = {
@@ -125,11 +126,11 @@ export function NavMap({
       center={center}
       zoom={16}
       zoomControl={false}
-      attributionControl={false}
+      attributionControl={mapboxAtivo}
       scrollWheelZoom={false}
       style={{ height: "100%", width: "100%", background: "#10121E" }}
     >
-      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png" />
+      <TileLayer url={urlTiles(true)} attribution={atribuicaoMapa} />
 
       {segments.map((seg) => {
         const tone = SEGMENT_TONES[seg.tone] || SEGMENT_TONES.future;

@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { marcarNotificacaoLida, notificacoes } from "@/api/app-motorista";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
-import { LineArt } from "@/components/rp/LineArt";
 import { EmptyState } from "@/components/rp/EmptyState";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { PullToRefresh } from "@/components/rp/PullToRefresh";
@@ -24,15 +22,14 @@ export default function Notifications() {
   const [items, setItems] = useState(null);
 
   const load = async () => {
-    const { driverId } = await getDriver();
-    const list = await base44.entities.Notification.filter({ driver_id: driverId }, "-created_date", 50);
+    const list = await notificacoes({ limite: 50 });
     setItems(list);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { load();   }, []);
 
   const open = async (n) => {
-    if (!n.read) await base44.entities.Notification.update(n.id, { read: true });
+    if (!n.read) await marcarNotificacaoLida(n.id);
     if (n.deep_link) { navigate(n.deep_link); return; }
     load();
   };

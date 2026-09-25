@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { comprovantesDasRotas, insucessosDasRotas, paradasDaRota, rota as buscarRota, trilhaDaRota } from "@/api/app-motorista";
 import { Icon } from "@/components/rp/Icon";
 import { RouteMap } from "@/components/route/RouteMap";
 
@@ -44,12 +44,15 @@ export default function RouteDetail() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const route = await base44.entities.Route.get(id);
-      const [stops, proofs, failures] = await Promise.all([
-        base44.entities.Stop.filter({ route_id: id }, "sequence", 200),
-        base44.entities.DeliveryProof.list("created_date", 500),
-        base44.entities.FailureReport.list("created_date", 500),
+      const [rotaBase, stops, proofs, failures, trilha] = await Promise.all([
+        buscarRota(id),
+        paradasDaRota(id, 200),
+        comprovantesDasRotas([id], 500),
+        insucessosDasRotas([id], 500),
+        trilhaDaRota(id).catch(() => []),
       ]);
+      // O mapa (RouteMap) lê a trilha em route.gps_track, como antes.
+      const route = rotaBase ? { ...rotaBase, gps_track: trilha } : rotaBase;
       if (alive) setData({ route, stops, proofs, failures });
     })();
     return () => {

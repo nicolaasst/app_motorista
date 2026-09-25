@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { minhasRotas, parada, paradasDaRota, rota as buscarRota } from "@/api/app-motorista";
 import { Icon } from "@/components/rp/Icon";
 import { CollapsibleStopCard } from "@/components/rp/CollapsibleStopCard";
 import { NavMap } from "@/components/route/NavMap";
@@ -33,28 +32,23 @@ export default function Navigation() {
       let target = null;
       if (id) {
         try {
-          target = await base44.entities.Stop.get(id);
+          target = await parada(id);
         } catch {
           target = null;
         }
       }
       let route = null;
       if (target) {
-        route = await base44.entities.Route.get(target.route_id);
+        route = await buscarRota(target.route_id);
       } else {
-        const { driverId } = await getDriver();
-        const routes = await base44.entities.Route.filter(
-          { driver_id: driverId, status: "em_operacao" },
-          "-date",
-          1,
-        );
+        const routes = await minhasRotas({ status: "em_operacao", limite: 1 });
         route = routes[0];
       }
       if (!route) {
         if (alive) setData({ route: null });
         return;
       }
-      const stops = await base44.entities.Stop.filter({ route_id: route.id }, "sequence", 200);
+      const stops = await paradasDaRota(route.id, 200);
       const next = target || stops.find((s) => PENDING_STATUS.includes(s.status)) || null;
       if (alive) setData({ route, stops, next });
     })();

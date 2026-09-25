@@ -1,10 +1,5 @@
-import { base44 } from "@/api/base44Client";
+import { motoristaAtual } from "@/api/app-motorista";
 
-// Resolve the current driver's profile + id used across authenticated pages.
-// The first DriverProfile record is the active driver for this device.
-export async function getDriver() {
-  const profiles = await base44.entities.DriverProfile.list();
-  const driver = profiles[0];
-  const driverId = driver?.user_id || "seed-driver-lucas";
-  return { driver, driverId };
-}
+// Motorista logado: { driver, driverId }. Vem da sessão (RPC app_motorista_contexto);
+// antes era o primeiro perfil da lista, com fallback fixo "seed-driver-lucas" (bug B-06).
+export const getDriver = motoristaAtual;

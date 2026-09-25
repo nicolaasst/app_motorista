@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { paradasDaRota } from "@/api/app-motorista";
 
 const PENDING_STATUS = ["nao_iniciada", "em_rota", "em_atendimento", "reagendada"];
 const POLL_MS = 30000;
@@ -17,7 +17,7 @@ export function useRouteChangeAlert({ routeId, enabled = true }) {
     const check = async () => {
       let stops = [];
       try {
-        stops = await base44.entities.Stop.filter({ route_id: routeId }, "sequence", 200);
+        stops = await paradasDaRota(routeId, 200);
       } catch {
         return;
       }

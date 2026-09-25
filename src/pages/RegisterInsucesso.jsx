@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { parada, volumesDaParada } from "@/api/app-motorista";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
@@ -9,7 +9,10 @@ import { Button } from "@/components/rp/Button";
 import { ConfirmDialog } from "@/components/rp/ConfirmDialog";
 import { SelectionRow } from "@/components/rp/SelectionRow";
 import { ResultOverlay } from "@/components/rp/ResultOverlay";
-import { enqueue, putBlob } from "@/lib/offlineQueue";
+import { putBlob } from "@/lib/offlineQueue";
+import { enviarProva } from "@/lib/enviarProva";
+import { capturarPosicao } from "@/lib/posicao";
+import { comprimirImagem } from "@/lib/imagem";
 
 const pad = (n) => String(n).padStart(2, "0");
 
@@ -34,12 +37,13 @@ export default function RegisterInsucesso() {
   const [saving, setSaving] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [rejeicao, setRejeicao] = useState(null);
 
   useEffect(() => {
     (async () => {
-      const s = await base44.entities.Stop.get(id);
+      const s = await parada(id);
       setStop(s);
-      const vs = await base44.entities.Volume.filter({ stop_id: id }, "created_date", 50);
+      const vs = await volumesDaParada(id, 50);
       setVolumes(vs);
     })();
   }, [id]);
@@ -53,65 +57,39 @@ export default function RegisterInsucesso() {
     const file = e.target.files?.[0];
     if (!file) return;
     const preview = URL.createObjectURL(file);
-    // Sem conexão a evidência fica no dispositivo e sobe junto com a ocorrência.
-    if (!navigator.onLine) {
-      const blobKey = `failure:${id}:${Date.now()}`;
-      await putBlob(blobKey, file);
-      setPhoto({ blobKey, preview });
-      return;
-    }
-    try {
-      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      setPhoto({ file_uri, preview });
-    } catch {
-      const blobKey = `failure:${id}:${Date.now()}`;
-      await putBlob(blobKey, file);
-      setPhoto({ blobKey, preview });
-    }
+    // A evidência fica no aparelho e sobe junto com a ocorrência (com ou sem conexão).
+    const blobKey = `failure:${id}:${Date.now()}`;
+    await putBlob(blobKey, await comprimirImagem(file));
+    setPhoto({ blobKey, preview });
   };
 
   const submit = async () => {
     setSaving(true);
     const now = new Date().toISOString();
-    const base = {
-      reason: reasonObj.value,
-      notes: obs.slice(0, 300),
-      lat: stop?.lat,
-      lng: stop?.lng,
-      reported_at: now,
-    };
-    // Offline (ou foto ainda local): entra na fila e sobe ao sincronizar.
-    if (!navigator.onLine || photo?.blobKey) {
-      enqueue({
-        kind: "failure",
-        key: `failure:${id}`,
-        stop_id: id,
-        route_id: stop?.route_id,
-        payload: {
-          ...base,
-          blobKey: photo?.blobKey,
-          photoUri: photo?.file_uri,
-          returnVolumes: volumes.length > 0,
-        },
-      });
-      setOffline(true);
-      setSaving(false);
-      setConfirmOpen(false);
-      setShowResult(true);
+    // Posição do APARELHO (antes gravava a da parada — B-02).
+    const posicao = await capturarPosicao();
+    const r = await enviarProva({
+      kind: "failure",
+      key: `failure:${id}`,
+      stop_id: id,
+      route_id: stop?.route_id,
+      payload: {
+        reason: reasonObj.value,
+        notes: obs.slice(0, 300),
+        posicao,
+        reported_at: now,
+        contact_attempts: [],
+        returnVolumes: volumes.length > 0,
+        anexos: photo?.blobKey ? [{ campo: "foto", tipo: "foto_insucesso", blobKey: photo.blobKey }] : [],
+      },
+    });
+    setSaving(false);
+    setConfirmOpen(false);
+    if (r.estado === "rejeitado") {
+      setRejeicao(r.mensagem);
       return;
     }
-    await base44.entities.FailureReport.create({
-      stop_id: id,
-      ...base,
-      photos: photo ? [{ url: photo.file_uri, taken_at: now, lat: stop?.lat, lng: stop?.lng }] : [],
-      contact_attempts: [],
-      sync_status: "ok",
-    });
-    await base44.entities.Stop.update(id, { status: "falha", finished_at: now });
-    if (volumes.length) {
-      await base44.entities.Volume.updateMany({ stop_id: id }, { $set: { return_status: "devolver" } });
-    }
-    setSaving(false);
+    setOffline(r.estado === "offline");
     setShowResult(true);
   };
 
@@ -217,6 +195,14 @@ export default function RegisterInsucesso() {
               : `${volumes.length} volume(s) para devolução`
           }
           onClose={() => navigate("/")}
+        />
+      )}
+      {rejeicao && (
+        <ResultOverlay
+          type="error"
+          message="Ocorrência não registrada"
+          detail={rejeicao}
+          onClose={() => setRejeicao(null)}
         />
       )}
     </div>

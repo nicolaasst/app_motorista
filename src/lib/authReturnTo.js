@@ -1,6 +1,6 @@
-// Shared by the auth pages (Login, Register, and any page that resumes a flow
-// after sign-in, e.g. the MCP OAuth consent page). Keep the redirect
-// validation in one place — it is security-sensitive and easy to drift.
+// Usado pelo login e pelo roteamento para voltar à tela pedida depois de
+// entrar. A validação do redirecionamento fica num lugar só — é sensível a
+// segurança (open redirect) e fácil de divergir.
 
 // Resolve ?returnTo= to a safe same-origin path, else "/".
 //
@@ -14,9 +14,8 @@ export function safeReturnTo() {
   try {
     const url = new URL(raw, window.location.origin);
     if (url.origin !== window.location.origin) return "/";
-    // Only access_token/clear_access_token are still URL-read by app-params.js, but the
-    // whole bootstrap set stays stripped: one going back to a URL read must not silently
-    // become injectable again. Normal app-flow params (e.g. the OAuth consent ctx) are kept.
+    // Parâmetros de token nunca são repassados (herança do Base44: não podem
+    // voltar a ser lidos da URL sem que alguém perceba).
     for (const p of ["access_token", "clear_access_token", "app_id", "app_base_url", "functions_version", "from_url"]) {
       url.searchParams.delete(p);
     }

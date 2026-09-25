@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { iniciarRota, meuVeiculo, minhasRotas, novaChave } from "@/api/app-motorista";
 import { getDriver } from "@/lib/driver";
 import { Icon } from "@/components/rp/Icon";
 import { Card } from "@/components/rp/Card";
@@ -21,15 +21,20 @@ export default function PreOpChecklist() {
   const [values, setValues] = useState(ITEMS.map(() => null));
   const [odometer, setOdometer] = useState("");
   const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState("");
+  const [chave] = useState(() => novaChave()); // mesma chave em reenvios desta tela
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { driver, driverId } = await getDriver();
-      const routes = await base44.entities.Route.filter({ driver_id: driverId }, "-date", 1);
-      const route = routes[0];
-      const vehicles = await base44.entities.Vehicle.list();
-      const vehicle = vehicles.find((v) => v.fleet === driver?.fleet) || vehicles[0];
+      const { driver } = await getDriver();
+      // Próxima rota a iniciar; sem ela, a mais recente (a tela mostra o estado).
+      const [aIniciar, recentes] = await Promise.all([
+        minhasRotas({ status: ["planejada", "checklist_ok"], limite: 1 }),
+        minhasRotas({ limite: 1 }),
+      ]);
+      const route = aIniciar[0] || recentes[0];
+      const vehicle = route ? await meuVeiculo(route.id) : null;
       if (alive) {
         setData({ driver, route, vehicle });
         if (vehicle?.last_odometer_km) setOdometer(String(vehicle.last_odometer_km));
@@ -45,21 +50,17 @@ export default function PreOpChecklist() {
   const start = async () => {
     if (!allOk || !data?.route) return;
     setSaving(true);
+    setErro("");
     const odo = Number(odometer);
     const items = ITEMS.map((it, i) => ({ key: it.key, label: it.label, ok: values[i], note: values[i] === false ? "Reprovado" : null }));
-    await base44.entities.VehicleChecklist.create({
-      route_id: data.route.id, type: "pre", items, odometer_km: odo,
-      declaration_accepted: true, completed_at: new Date().toISOString(),
-    });
-    await base44.entities.Route.update(data.route.id, {
-      status: "em_operacao",
-      started_at: new Date().toISOString(),
-      odometer_start: odo,
-    });
-    if (data.vehicle && odo > (data.vehicle.last_odometer_km || 0)) {
-      await base44.entities.Vehicle.update(data.vehicle.id, { last_odometer_km: odo });
+    try {
+      // Checklist + início da rota + hodômetro do veículo numa transação no servidor.
+      await iniciarRota({ chave, rotaId: data.route.id, itens: items, odometro: odo });
+      navigate("/");
+    } catch (e) {
+      setErro(e?.message || "Não foi possível iniciar a rota. Tente novamente.");
+      setSaving(false);
     }
-    navigate("/");
   };
 
   if (!data) return <div className="screen-pad pt-16"><div className="card h-40 animate-pulse" /><div className="card mt-4 h-24 animate-pulse" /><div className="card mt-4 h-24 animate-pulse" /></div>;
@@ -128,6 +129,7 @@ export default function PreOpChecklist() {
           <b>Atesta conformidade</b> das condições do veículo conforme normas vigentes do Código de Trânsito Brasileiro e diretrizes operacionais de transporte seguro.
         </div>
 
+        {erro && <p className="mb-2 text-center text-body-sm font-semibold text-destructive">{erro}</p>}
         <button onClick={start} disabled={!allOk || saving} className="rp-tap flex w-full items-center justify-center gap-2 rounded-full bg-primary-container min-h-[52px] text-label-lg text-primary-foreground shadow-cta disabled:opacity-50">
           {saving ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <><Icon name="play_arrow" size={20} /> Iniciar Turno e Carregar Rotas</>}
         </button>

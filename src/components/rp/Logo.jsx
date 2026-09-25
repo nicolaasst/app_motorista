@@ -1,4 +1,4 @@
-import logoFull from "@/assets/brand/logo-full.png";
+import { BRAND } from "@/lib/brandAssets";
 
 // Single source of truth for the NGS brand mark.
 // `full`  — complete logo with wordmark (used in Login hero / receipts).
@@ -20,7 +20,7 @@ export function Logo({ variant = "full", size = 40, className = "" }) {
         role="img"
       >
         <img
-          src="https://media.base44.com/images/public/6ab6791e92caee6a12a15e7d/db884999f_icon48.png"
+          src={BRAND.icone}
           alt="NGS Transportes"
           className="h-full w-full object-cover"
           draggable={false}
@@ -30,7 +30,7 @@ export function Logo({ variant = "full", size = 40, className = "" }) {
   }
   return (
     <img
-      src={logoFull}
+      src={BRAND.logoCompleto}
       alt="NGS Transportes"
       className={className}
       style={{ height: size, width: "auto" }}

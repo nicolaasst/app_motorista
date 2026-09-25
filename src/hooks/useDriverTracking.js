@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { registrarGps, trilhaDaRota } from "@/api/app-motorista";
 import { averageHeading, bearing, haversine } from "@/lib/geo";
 import { enqueueGpsPoints } from "@/lib/offlineQueue";
+import { lembrarPosicao } from "@/lib/posicao";
 
 const ACCURACY_LIMIT_M = 60; // leituras piores que isso não movem o marcador
 const ACCURACY_GRACE_MS = 15000; // sem leitura precisa por 15s, aceita a imprecisa
@@ -48,13 +49,22 @@ export function useDriverTracking({ route, enabled = true }) {
     };
   }
 
-  // Trilha já gravada na rota (quando ela chega depois do mount).
+  // Trilha já gravada da rota (tabela de pontos GPS), ao abrir/reabrir o app.
   useEffect(() => {
     const r = refs.current;
-    if (route?.gps_track?.length && r.track.length === 0) {
-      r.track = [...route.gps_track];
-      setTrack([...r.track]);
-    }
+    if (!route?.id || r.track.length > 0) return undefined;
+    let alive = true;
+    trilhaDaRota(route.id)
+      .then((pontos) => {
+        if (alive && pontos.length && r.track.length === 0) {
+          r.track = pontos;
+          setTrack([...r.track]);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, [route?.id]);
 
   useEffect(() => {
@@ -67,8 +77,10 @@ export function useDriverTracking({ route, enabled = true }) {
       setTrack([...R.track]);
       const routeId = routeRef.current?.id;
       if (!routeId) return;
+      // Só o ponto novo sobe (idempotente pela PK rota+horário); sem rede ou
+      // com falha, vai para a fila offline e sobe em lote depois.
       if (typeof navigator !== "undefined" && navigator.onLine) {
-        base44.entities.Route.update(routeId, { gps_track: R.track }).catch(() => {});
+        registrarGps(routeId, [point]).catch(() => enqueueGpsPoints(routeId, [point]));
       } else {
         enqueueGpsPoints(routeId, [point]);
       }
@@ -95,6 +107,7 @@ export function useDriverTracking({ route, enabled = true }) {
       const c = pos.coords;
       const now = Date.now();
       const raw = { lat: c.latitude, lng: c.longitude, accuracy: c.accuracy, t: now };
+      lembrarPosicao(c.latitude, c.longitude, c.accuracy);
       const reportedSpeed =
         typeof c.speed === "number" && !Number.isNaN(c.speed) ? c.speed * 3.6 : null;
 

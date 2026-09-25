@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { dataUrlParaBlob, parada, volumesDaParada } from "@/api/app-motorista";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
 import { Card } from "@/components/rp/Card";
@@ -11,7 +11,10 @@ import { Sheet } from "@/components/rp/Sheet";
 import { SelectionRow } from "@/components/rp/SelectionRow";
 import { maskRgOrCpf } from "@/lib/masks";
 import { ResultOverlay } from "@/components/rp/ResultOverlay";
-import { enqueue, putBlob } from "@/lib/offlineQueue";
+import { putBlob } from "@/lib/offlineQueue";
+import { enviarProva } from "@/lib/enviarProva";
+import { capturarPosicao } from "@/lib/posicao";
+import { comprimirImagem } from "@/lib/imagem";
 
 const RECEIVER_TYPES = [
   { value: "proprio_destinatario", label: "Próprio destinatário" },
@@ -33,20 +36,21 @@ export default function ConfirmDelivery() {
   const [receiverType, setReceiverType] = useState("");
   const [receiverTypeOther, setReceiverTypeOther] = useState("");
   const [isHolder, setIsHolder] = useState(false);
-  const [signed, setSigned] = useState(false);
-  const [photo, setPhoto] = useState(null); // { file_uri, preview }
+  const [signed, setSigned] = useState(null); // data URL PNG da assinatura (null = sem assinatura)
+  const [photo, setPhoto] = useState(null); // { blobKey, preview }
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmed, setConfirmed] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [offline, setOffline] = useState(false);
+  const [rejeicao, setRejeicao] = useState(null);
   const [typeSheet, setTypeSheet] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const s = await base44.entities.Stop.get(id);
+      const s = await parada(id);
       setStop(s);
-      const vs = await base44.entities.Volume.filter({ stop_id: id }, "created_date", 50);
+      const vs = await volumesDaParada(id, 50);
       setVolumes(vs);
       setName(s.contact_name || "");
     })();
@@ -68,63 +72,48 @@ export default function ConfirmDelivery() {
     const file = e.target.files?.[0];
     if (!file) return;
     const preview = URL.createObjectURL(file);
-    // Sem conexão a foto fica no dispositivo e sobe junto com a entrega.
-    if (!navigator.onLine) {
-      const blobKey = `proof:${id}:${Date.now()}`;
-      await putBlob(blobKey, file);
-      setPhoto({ blobKey, preview });
-      return;
-    }
-    try {
-      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      setPhoto({ file_uri, preview });
-    } catch {
-      const blobKey = `proof:${id}:${Date.now()}`;
-      await putBlob(blobKey, file);
-      setPhoto({ blobKey, preview });
-    }
+    // A foto fica no aparelho e sobe junto com a entrega (com ou sem conexão).
+    const blobKey = `proof:${id}:${Date.now()}`;
+    await putBlob(blobKey, await comprimirImagem(file));
+    setPhoto({ blobKey, preview });
   };
 
   const submit = async () => {
     setSaving(true);
     const now = new Date().toISOString();
-    const base = {
-      receiver_name: name,
-      receiver_doc: doc,
-      receiver_is_holder: isHolder,
-      receiver_type: receiverType,
-      receiver_type_other: receiverType === "outro" ? receiverTypeOther.trim() : undefined,
-      notes: notes.slice(0, 300),
-      lat: stop.lat,
-      lng: stop.lng,
-      delivered_at: now,
-      device_info: navigator.userAgent,
-    };
-    // Offline (ou foto ainda local): entra na fila e sobe ao sincronizar.
-    if (!navigator.onLine || photo?.blobKey) {
-      enqueue({
-        kind: "delivery",
-        key: `delivery:${id}`,
-        stop_id: id,
-        route_id: stop.route_id,
-        payload: { ...base, blobKey: photo?.blobKey, photoUri: photo?.file_uri },
-      });
-      setOffline(true);
-      setSaving(false);
-      setShowSuccess(true);
+    // Posição do APARELHO no momento da entrega (antes gravava a da parada — B-02).
+    const posicao = await capturarPosicao();
+    const assinaturaKey = `signature:${id}:${Date.now()}`;
+    await putBlob(assinaturaKey, dataUrlParaBlob(signed));
+    const r = await enviarProva({
+      kind: "delivery",
+      key: `delivery:${id}`,
+      stop_id: id,
+      route_id: stop.route_id,
+      payload: {
+        recebedor: {
+          nome: name.trim(),
+          documento: doc,
+          titular: isHolder,
+          tipo: receiverType,
+          tipo_outro: receiverType === "outro" ? receiverTypeOther.trim() : null,
+        },
+        notes: notes.slice(0, 300),
+        posicao,
+        delivered_at: now,
+        dispositivo: { ua: navigator.userAgent, volumes_conferidos: confirmedCount, volumes_total: volumes.length },
+        anexos: [
+          { campo: "assinatura", tipo: "assinatura_entrega", blobKey: assinaturaKey },
+          ...(photo?.blobKey ? [{ campo: "foto", tipo: "foto_entrega", blobKey: photo.blobKey }] : []),
+        ],
+      },
+    });
+    setSaving(false);
+    if (r.estado === "rejeitado") {
+      setRejeicao(r.mensagem);
       return;
     }
-    await base44.entities.DeliveryProof.create({
-      stop_id: id,
-      ...base,
-      signature_png: "",
-      signature_hash: "",
-      photos: [{ url: photo.file_uri, taken_at: now }],
-      accuracy_m: null,
-      sync_status: "ok",
-    });
-    await base44.entities.Stop.update(id, { status: "entregue", finished_at: now });
-    setSaving(false);
+    setOffline(r.estado === "offline");
     setShowSuccess(true);
   };
 
@@ -286,6 +275,14 @@ export default function ConfirmDelivery() {
                 : RECEIVER_TYPES.find((t) => t.value === receiverType)?.label
           }
           onClose={() => navigate("/")}
+        />
+      )}
+      {rejeicao && (
+        <ResultOverlay
+          type="error"
+          message="Entrega não registrada"
+          detail={rejeicao}
+          onClose={() => setRejeicao(null)}
         />
       )}
     </div>

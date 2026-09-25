@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { base44 } from "@/api/base44Client";
+import { minhasRotas, motoristaAtual, notificacoes, paradasDaRota, volumesDaRota } from "@/api/app-motorista";
 import { AppHeader } from "@/components/rp/AppHeader";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
@@ -30,14 +30,10 @@ export default function Home() {
   const [data, setData] = useState(null);
 
   const load = async () => {
-    const [profiles] = await Promise.all([
-      base44.entities.DriverProfile.list(),
-    ]);
-    const driver = profiles[0];
-    const driverId = driver?.user_id || "seed-driver-lucas";
-    const [routes, notifs] = await Promise.all([
-      base44.entities.Route.filter({ driver_id: driverId, status: "em_operacao" }, "-date", 5),
-      base44.entities.Notification.filter({ driver_id: driverId, read: false }, "-created_date", 50),
+    const [{ driver }, routes, notifs] = await Promise.all([
+      motoristaAtual(),
+      minhasRotas({ status: "em_operacao", limite: 5 }),
+      notificacoes({ naoLidas: true, limite: 50 }),
     ]);
     const route = routes[0];
     if (!route) {
@@ -45,8 +41,8 @@ export default function Home() {
       return;
     }
     const [stops, volumes] = await Promise.all([
-      base44.entities.Stop.filter({ route_id: route.id }, "sequence", 50),
-      base44.entities.Volume.filter({ route_id: route.id }, "-created_date", 200),
+      paradasDaRota(route.id, 50),
+      volumesDaRota(route.id, 200),
     ]);
     const byStop = {};
     for (const v of volumes) (byStop[v.stop_id] ||= []).push(v);

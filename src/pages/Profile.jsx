@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { atualizarPreferencias, contexto, definirAvatar, enviarArquivo, meuVeiculo, meusDocumentos, minhasContas, novaChave, sair, solicitarExclusaoConta, urlArquivo } from "@/api/app-motorista";
+import { comprimirImagem } from "@/lib/imagem";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
 import { Sheet } from "@/components/rp/Sheet";
@@ -49,25 +49,15 @@ export default function Profile() {
   };
 
   const load = async () => {
-    const { driver, driverId } = await getDriver();
-    const [vehicles, docs, banks, prefs] = await Promise.all([
-      base44.entities.Vehicle.list(),
-      base44.entities.PersonalDocument.filter({ driver_id: driverId }, "valid_until", 20),
-      base44.entities.BankAccount.filter({ driver_id: driverId }, "-changed_at", 5),
-      base44.entities.DriverPreferences.filter({ driver_id: driverId }, "created_date", 1),
+    const { perfil: driver, preferencias: pref } = await contexto({ recarregar: true });
+    const [vehicle, docs, banks] = await Promise.all([
+      meuVeiculo().catch(() => null),
+      meusDocumentos(),
+      minhasContas(),
     ]);
-    const vehicle = vehicles.find((v) => v.fleet === driver?.fleet) || vehicles[0];
-    let avatarSrc = null;
-    if (driver?.avatar_url) {
-      if (driver.avatar_url.startsWith("http")) avatarSrc = driver.avatar_url;
-      else {
-        try {
-          const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: driver.avatar_url });
-          avatarSrc = signed_url;
-        } catch { avatarSrc = null; }
-      }
-    }
-    setData({ driver, vehicle, docs, bank: banks.find((b) => b.is_primary) || banks[0], pref: prefs[0], prefId: prefs[0]?.id, avatarSrc });
+    // avatar_url guarda o id do documento no R2; a URL de leitura é temporária (5 min).
+    const avatarSrc = driver?.avatar_url ? await urlArquivo(driver.avatar_url).catch(() => null) : null;
+    setData({ driver, vehicle, docs, bank: banks.find((b) => b.is_primary) || banks[0], pref, prefId: pref?.id, avatarSrc });
   };
 
   useEffect(() => {
@@ -81,22 +71,16 @@ export default function Profile() {
 
   const logout = async () => {
     setBusy(true);
-    await base44.auth.logout("/login");
+    // A fila offline é do motorista e fica no aparelho: sobe no próximo login dele.
+    await sair();
+    window.location.assign("/login");
   };
 
   const requestDeletion = async () => {
     setDeleting(true);
     try {
-      const { driverId } = await getDriver();
-      await base44.entities.Ticket.create({
-        code: `EX${Date.now().toString().slice(-6)}`,
-        driver_id: driverId,
-        category: "outro",
-        subject: "Solicitação de Exclusão de Conta",
-        description: "Motorista solicitou a exclusão definitiva da conta e dos dados pessoais (LGPD).",
-        status: "aberto",
-        opened_at: new Date().toISOString(),
-      });
+      // LGPD: vira chamado padronizado na Central de Atendimento.
+      await solicitarExclusaoConta({ chave: novaChave() });
       setDeleteRequested(true);
     } catch {
       flash("Não foi possível registrar a solicitação. Tente novamente.");
@@ -109,7 +93,7 @@ export default function Profile() {
     const prev = data.pref;
     setData((d) => ({ ...d, pref: { ...d.pref, ...patch } })); // optimistic
     try {
-      await base44.entities.DriverPreferences.update(data.prefId, patch);
+      await atualizarPreferencias(patch);
     } catch {
       setData((d) => ({ ...d, pref: prev })); // revert
       flash("Não foi possível salvar a preferência.");
@@ -129,10 +113,10 @@ export default function Profile() {
     setPhotoSheet(false);
     setUploading(true);
     try {
-      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      await base44.entities.DriverProfile.update(data.driver.id, { avatar_url: file_uri });
-      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
-      setData((d) => ({ ...d, driver: { ...d.driver, avatar_url: file_uri }, avatarSrc: signed_url }));
+      const { documentoId } = await enviarArquivo(await comprimirImagem(file, { ladoMax: 800 }), "avatar");
+      await definirAvatar(documentoId);
+      const url = await urlArquivo(documentoId);
+      setData((d) => ({ ...d, driver: { ...d.driver, avatar_url: documentoId }, avatarSrc: url }));
     } catch {
       flash("Falha no upload da foto.");
     }
@@ -143,7 +127,7 @@ export default function Profile() {
     setPhotoSheet(false);
     setUploading(true);
     try {
-      await base44.entities.DriverProfile.update(data.driver.id, { avatar_url: "" });
+      await definirAvatar(null);
       setData((d) => ({ ...d, driver: { ...d.driver, avatar_url: "" }, avatarSrc: null }));
     } catch {
       flash("Falha ao remover a foto.");
@@ -287,6 +271,12 @@ export default function Profile() {
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-ink"><Icon name="support_agent" size={20} /></span>
         <div className="flex-1"><p className="text-body-md font-bold">Central de Apoio à Frota</p><p className="text-body-sm text-muted-foreground">Abertura de chamados e suporte</p></div>
         <Icon name="chevron_right" size={20} className="text-muted-foreground" />
+      </button>
+
+      <button onClick={() => navigate("/emergency")} className="rp-tap mt-3 flex w-full items-center gap-3 rounded-2xl border border-destructive/30 bg-error-container/30 p-4 text-left">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive text-white"><Icon name="emergency" size={20} /></span>
+        <div className="flex-1"><p className="text-body-md font-bold text-destructive">Emergência</p><p className="text-body-sm text-muted-foreground">Acidente, assalto ou risco — aciona a central na hora</p></div>
+        <Icon name="chevron_right" size={20} className="text-destructive" />
       </button>
 
       <div className="mt-4 flex justify-center gap-4 text-label-sm font-semibold text-muted-foreground">

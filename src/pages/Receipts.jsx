@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { meusRecibos } from "@/api/app-motorista";
 import { Icon } from "@/components/rp/Icon";
-import { LineArt } from "@/components/rp/LineArt";
 import { EmptyState } from "@/components/rp/EmptyState";
 import { ILLUSTRATIONS } from "@/lib/illustrations";
 import { EMPTY_VALUE } from "@/lib/utils";
@@ -32,8 +30,7 @@ export default function Receipts() {
   const [tab, setTab] = useState("todos");
 
   const load = async () => {
-    const { driverId } = await getDriver();
-    const r = await base44.entities.Receipt.filter({ driver_id: driverId }, "-period_start", 60);
+    const r = await meusRecibos(60);
     setReceipts(r);
   };
 

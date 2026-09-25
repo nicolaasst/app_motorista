@@ -1,28 +1,19 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { entrar } from "@/api/app-motorista";
+import { lembrarLogin } from "@/api/supabaseClient";
 import { Icon } from "@/components/rp/Icon";
 import { LineArt } from "@/components/rp/LineArt";
-import { Logo } from "@/components/rp/Logo";
 import { safeReturnTo } from "@/lib/authReturnTo";
-import { maskCpf, unmask } from "@/lib/masks";
-
-// Formata o identificador: CPF com máscara a partir do 10º dígito,
-// matrícula em dígitos simples, e-mail preservado como digitado.
-const formatarIdentificador = (v) => {
-  if (v.includes("@")) return v.trim();
-  const d = unmask(v).slice(0, 11);
-  return d.length > 9 ? maskCpf(d) : d;
-};
+import { formatarIdentificador } from "@/lib/masks";
 
 export default function Login() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [remember, setRemember] = useState(true);
+  const [remember, setRemember] = useState(() => lembrarLogin());
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
   const submit = async (e) => {
@@ -32,39 +23,14 @@ export default function Login() {
     if (!raw || !password) { setError("Informe seu CPF/matrícula e senha."); return; }
     setLoading(true);
     try {
-      // Identificador é CPF ou matrícula: resolve o cadastro do motorista
-      // para obter o e-mail de autenticação. E-mail digitado direto também
-      // é aceito (contas administrativas sem perfil de motorista).
-      let email = raw.includes("@") ? raw : null;
-      if (!email) {
-        const digits = unmask(raw);
-        try {
-          const profiles = await base44.entities.DriverProfile.list();
-          const profile = profiles.find(
-            (p) => unmask(p.cpf) === digits || String(p.matricula || "").replace(/\D/g, "") === digits
-          );
-          email = profile?.email_corporate || profile?.email_personal;
-        } catch {
-          // Cadastro indisponível antes do login — segue para a mensagem de erro.
-        }
-      }
-      if (!email) {
-        setLoading(false);
-        setError("CPF ou matrícula não encontrados. Verifique os dados ou contate a central.");
-        return;
-      }
-      await base44.auth.loginViaEmailPassword(email, password);
-      window.location.href = safeReturnTo();
+      // CPF, matrícula ou e-mail: o servidor resolve o cadastro (o aparelho
+      // nunca recebe dados de outros motoristas) e devolve só a sessão.
+      await entrar({ identificador: raw, senha: password, lembrar: remember });
+      navigate(safeReturnTo(), { replace: true });
     } catch (err) {
       setLoading(false);
       setError(err?.message || "Credenciais inválidas. Verifique e tente novamente.");
     }
-  };
-
-  const google = () => {
-    setError("");
-    setGoogleLoading(true);
-    base44.auth.loginWithProvider("google", safeReturnTo());
   };
 
   return (
@@ -140,18 +106,6 @@ export default function Login() {
             {loading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <><Icon name="login" size={20} /> Entrar no Sistema</>}
           </button>
         </form>
-
-        <div className="my-5 flex items-center gap-3 text-label-sm text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> ou <span className="h-px flex-1 bg-border" />
-        </div>
-
-        <button
-          onClick={google}
-          disabled={googleLoading}
-          className="rp-tap flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card min-h-[48px] text-body-md font-bold disabled:opacity-70"
-        >
-          {googleLoading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-stone/40 border-t-stone" /> : <Icon name="logo_google" size={20} />} Entrar com Google
-        </button>
 
         <div className="mt-5 flex items-center justify-center gap-2 text-label-sm font-semibold text-primary-deep">
           <Icon name="cloud_done" size={16} /> Sincronização em nuvem ativa

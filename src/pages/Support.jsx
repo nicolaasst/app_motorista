@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { abrirChamado, faq, meusChamados, novaChave } from "@/api/app-motorista";
 import { SubHeader } from "@/components/rp/SubHeader";
 import { Icon } from "@/components/rp/Icon";
 import { StatusPill } from "@/components/rp/StatusPill";
@@ -18,7 +17,8 @@ const CATEGORIES = [
   { value: "mecanica", icon: "build", label: "Mecânica / Pneu" },
   { value: "coleta_nfe", icon: "receipt_long", label: "Coleta / NF-e" },
   { value: "app_sync", icon: "sync_problem", label: "App / Sincronismo" },
-  { value: "emergencia", icon: "emergency", label: "Emergência" },
+  // Emergência não é chamado: abre o fluxo próprio (prioridade máxima, com posição).
+  { value: "emergencia", icon: "emergency", label: "Emergência", rota: "/emergency" },
   { value: "outro", icon: "more_horiz", label: "Outro" },
 ];
 const STATUS_META = {
@@ -42,11 +42,7 @@ export default function Support() {
   const [catSheet, setCatSheet] = useState(false);
 
   const load = async () => {
-    const { driverId } = await getDriver();
-    const [t, f] = await Promise.all([
-      base44.entities.Ticket.filter({ driver_id: driverId }, "-opened_at", 30),
-      base44.entities.Faq.list("order", 30),
-    ]);
+    const [t, f] = await Promise.all([meusChamados(30), faq(30)]);
     setTickets(t);
     setFaqs(f);
   };
@@ -58,13 +54,13 @@ export default function Support() {
   const submit = async () => {
     if (subject.trim().length < 4 || desc.trim().length < 10) return;
     setSending(true);
-    const { driverId } = await getDriver();
-    const code = `CH${Date.now().toString().slice(-6)}`;
-    await base44.entities.Ticket.create({
-      code, driver_id: driverId, category,
-      subject: subject.trim(), description: desc.trim(),
-      status: "aberto", opened_at: new Date().toISOString(),
-    });
+    try {
+      // Vira chamado na Central de Atendimento do TMS (código CH-AAAA-NNNNN).
+      await abrirChamado({ chave: novaChave(), categoria: category, assunto: subject.trim(), descricao: desc.trim() });
+    } catch {
+      setSending(false);
+      return;
+    }
     setSending(false);
     setFormOpen(false);
     setSubject(""); setDesc("");
@@ -99,7 +95,7 @@ export default function Support() {
           <p className="text-body-sm font-semibold text-muted-foreground">Selecione o tema</p>
           <div className="mt-2 grid grid-cols-2 gap-3">
             {CATEGORIES.map((c) => (
-              <button key={c.value} onClick={() => openForm(c.value)} className="card flex flex-col items-start gap-1 p-3.5 text-left">
+              <button key={c.value} onClick={() => (c.rota ? navigate(c.rota) : openForm(c.value))} className="card flex flex-col items-start gap-1 p-3.5 text-left">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-accent-foreground"><Icon name={c.icon} size={20} /></span>
                 <p className="text-body-md font-bold leading-tight">{c.label}</p>
               </button>
@@ -187,7 +183,7 @@ export default function Support() {
       {/* Category picker sheet */}
       <Sheet open={catSheet} onClose={() => setCatSheet(false)} title="Motivo do Chamado">
         <div className="space-y-2">
-          {CATEGORIES.map((c) => (
+          {CATEGORIES.filter((c) => !c.rota).map((c) => (
             <SelectionRow key={c.value} icon={c.icon} label={c.label} active={category === c.value} onClick={() => { setCategory(c.value); setCatSheet(false); }} />
           ))}
         </div>

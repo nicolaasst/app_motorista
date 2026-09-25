@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { assinarRecibo, dataUrlParaBlob, enviarArquivo, itensDoRecibo, minhasContas, novaChave, recibo as buscarRecibo, rotasDoRecibo, rotasPorIds } from "@/api/app-motorista";
+import { capturarPosicao } from "@/lib/posicao";
 import { getDriver } from "@/lib/driver";
 import { Icon } from "@/components/rp/Icon";
 import { Card } from "@/components/rp/Card";
@@ -21,27 +22,23 @@ export default function ReceiptDetail() {
   const [agreed, setAgreed] = useState(false);
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [erro, setErro] = useState("");
+  const [chave] = useState(() => novaChave());
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      let receipt;
-      try {
-        receipt = await base44.entities.Receipt.get(id);
-      } catch {
-        const byCode = await base44.entities.Receipt.filter({ code: id }, "-period_start", 5);
-        receipt = byCode[0];
-      }
+      // Aceita o id ou o código legível (links antigos usam o código).
+      const receipt = await buscarRecibo(id).catch(() => null);
       if (!receipt) { if (alive) setData({ notFound: true }); return; }
       const rid = receipt.id;
       const [items, links, driverRes, banks] = await Promise.all([
-        base44.entities.ReceiptItem.filter({ receipt_id: rid }, "created_date", 100),
-        base44.entities.ReceiptRouteLink.filter({ receipt_id: rid }, "date", 50),
+        itensDoRecibo(rid),
+        rotasDoRecibo(rid),
         getDriver(),
-        base44.entities.BankAccount.filter({ driver_id: receipt.driver_id }, "-changed_at", 5),
+        minhasContas(),
       ]);
-      const routeIds = links.map((l) => l.route_id);
-      const routes = routeIds.length ? await base44.entities.Route.list("date", 100) : [];
+      const routes = await rotasPorIds(links.map((l) => l.route_id));
       const linkedRoutes = links.map((l) => ({ ...l, route: routes.find((r) => r.id === l.route_id) }));
       const bank = banks.find((b) => b.is_primary) || banks[0];
       if (alive) setData({ receipt, items, links: linkedRoutes, driver: driverRes.driver, bank });
@@ -52,15 +49,21 @@ export default function ReceiptDetail() {
   const confirm = async () => {
     if (!signature || !agreed || !data) return;
     setSaving(true);
-    const hash = `sha256:${btoa(signature).slice(0, 32)}`;
-    await base44.entities.Receipt.update(data.receipt.id, {
-      status: "assinado",
-      signed_at: new Date().toISOString(),
-      signature_png: signature,
-      signature_hash: hash,
-    });
+    setErro("");
+    try {
+      // A imagem sobe para o servidor, que confere o formato e calcula o SHA-256
+      // dos bytes gravados; a RPC confere status/prazo e calcula o hash do recibo
+      // assinado (antes era btoa() no aparelho — bug B-03).
+      const { documentoId } = await enviarArquivo(dataUrlParaBlob(signature), "assinatura_recibo");
+      const posicao = await capturarPosicao({ timeoutMs: 5000 });
+      await assinarRecibo({ chave, reciboId: data.receipt.id, assinaturaId: documentoId, posicao });
+      setDone(true);
+    } catch (e) {
+      setErro(e?.transitorio
+        ? "Sem conexão com o servidor. A assinatura exige internet — tente novamente."
+        : e?.message || "Não foi possível assinar o recibo.");
+    }
     setSaving(false);
-    setDone(true);
   };
 
   if (done) {
@@ -208,6 +211,7 @@ export default function ReceiptDetail() {
         {!alreadySigned && (
           <div className="grid grid-cols-2 gap-3">
             <button onClick={() => navigate("/support")} className="flex items-center justify-center gap-2 rounded-full border border-border py-3.5 text-body-md font-bold text-muted-foreground"><Icon name="support_agent" size={20} /> Contestar Valores</button>
+            {erro && <p className="text-center text-body-sm font-semibold text-destructive">{erro}</p>}
             <Button loading={saving} disabled={!canSign} onClick={confirm}><Icon name="check" size={20} /> Confirmar e Assinar</Button>
           </div>
         )}

@@ -86,3 +86,10 @@ export function maskRgOrCpf(v) {
   }
   return maskCpf(digits);
 }
+// Identificador de acesso: CPF com máscara a partir do 10º dígito, matrícula em
+// dígitos simples, e-mail preservado como digitado (login e recuperação de senha).
+export function formatarIdentificador(v) {
+  if (v.includes("@")) return v.trim();
+  const d = unmask(v).slice(0, 11);
+  return d.length > 9 ? maskCpf(d) : d;
+}

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { minhasRotas, paradasDasRotas } from "@/api/app-motorista";
 import { Icon } from "@/components/rp/Icon";
 import { Sheet } from "@/components/rp/Sheet";
 import { LineArt } from "@/components/rp/LineArt";
@@ -50,11 +49,8 @@ export default function RouteHistory() {
   const sentinelRef = useRef(null);
 
   const load = async () => {
-    const { driverId } = await getDriver();
-    const [r, s] = await Promise.all([
-      base44.entities.Route.filter({ driver_id: driverId }, "-date", 200),
-      base44.entities.Stop.list("sequence", 2000),
-    ]);
+    const r = await minhasRotas({ limite: 200 });
+    const s = await paradasDasRotas(r.map((x) => x.id), 2000);
     setRoutes(r);
     setStops(s);
   };

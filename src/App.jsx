@@ -2,13 +2,15 @@ import { lazy, Suspense, useRef } from "react";
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from "framer-motion";
 import { getNavDirection } from "@/lib/tabStack";
 import TabStackSync from "@/components/TabStackSync";
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import ConfiguracaoAusente from '@/components/ConfiguracaoAusente';
+import { safeReturnTo } from '@/lib/authReturnTo';
 import ScrollToTop from './components/ScrollToTop';
 import AppLayout from '@/components/AppLayout';
 import ThemeSync from '@/components/ThemeSync';
@@ -34,6 +36,7 @@ const OfflineMaps = lazy(() => import('@/pages/OfflineMaps'));
 const Support = lazy(() => import('@/pages/Support'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const Analysis = lazy(() => import('@/pages/Analysis'));
+const Emergency = lazy(() => import('@/pages/Emergency'));
 
 const PageLoader = () => (
   <div className="fixed inset-0 flex items-center justify-center">
@@ -57,27 +60,40 @@ const screenVariants = {
   }),
 };
 
+// Telas abertas sem sessão (login e recuperação de senha).
+const ROTAS_PUBLICAS = ['/login', '/forgot'];
+
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
   const location = useLocation();
   const prevPath = useRef(null);
   const direction = getNavDirection(prevPath.current, location.pathname);
   prevPath.current = location.pathname;
+  const publica = ROTAS_PUBLICAS.includes(location.pathname);
 
-  // Show loading spinner while checking app public settings or auth
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (isLoadingAuth) {
     return <PageLoader />;
   }
 
-  // Handle authentication errors
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically
-      navigateToLogin();
-      return null;
-    }
+  // Sem VITE_SUPABASE_*: tela de configuração, nunca tela branca.
+  if (authError?.type === 'config_missing') {
+    return <ConfiguracaoAusente />;
+  }
+
+  // Sem sessão: só as telas públicas; o resto volta para o login e retorna depois.
+  if (!isAuthenticated && !publica) {
+    const destino = location.pathname + location.search;
+    return <Navigate to={`/login?returnTo=${encodeURIComponent(destino)}`} replace />;
+  }
+
+  // Sessão válida sem cadastro ativo de motorista (usuário do TMS, conta não vinculada, suspenso).
+  if (authError?.type === 'user_not_registered' && !publica) {
+    return <UserNotRegisteredError />;
+  }
+
+  // Já logado como motorista: o login leva direto para o destino.
+  if (isAuthenticated && !authError && location.pathname === '/login') {
+    return <Navigate to={safeReturnTo()} replace />;
   }
 
   // Render the main app
@@ -115,6 +131,7 @@ const AuthenticatedApp = () => {
           <Route path="/profile/offline-maps" element={<OfflineMaps />} />
           <Route path="/support" element={<Support />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/emergency" element={<Emergency />} />
           <Route element={<AppLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/history" element={<RouteHistory />} />

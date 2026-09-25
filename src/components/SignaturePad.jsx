@@ -4,6 +4,7 @@ import { Eraser } from "lucide-react";
 export default function SignaturePad({ onChange, label = "Assine com o dedo" }) {
   const canvasRef = useRef(null);
   const drawing = useRef(false);
+  const inked = useRef(false);
   const [hasInk, setHasInk] = useState(false);
 
   useEffect(() => {
@@ -42,13 +43,16 @@ export default function SignaturePad({ onChange, label = "Assine com o dedo" }) 
     const { x, y } = pos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
-    if (!hasInk) {
+    if (!inked.current) {
+      inked.current = true;
       setHasInk(true);
-      onChange?.(canvasRef.current.toDataURL("image/png"));
     }
   };
 
+  // A imagem sai ao fim de cada traço, com a assinatura inteira (antes saía só
+  // no primeiro movimento e a assinatura gravada ficava com um pedaço do traço).
   const end = () => {
+    if (drawing.current && inked.current) onChange?.(canvasRef.current.toDataURL("image/png"));
     drawing.current = false;
   };
 
@@ -56,6 +60,7 @@ export default function SignaturePad({ onChange, label = "Assine com o dedo" }) 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    inked.current = false;
     setHasInk(false);
     onChange?.(null);
   };

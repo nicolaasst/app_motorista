@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { getDriver } from "@/lib/driver";
+import { contexto } from "@/api/app-motorista";
 import { applyTheme } from "@/lib/theme";
 
 // Reads the driver's saved theme preference and keeps <html> in sync,
@@ -16,10 +15,9 @@ export default function ThemeSync() {
     (async () => {
       applyTheme(theme);
       try {
-        const { driverId } = await getDriver();
-        const prefs = await base44.entities.DriverPreferences.filter({ driver_id: driverId }, "created_date", 1);
-        if (alive && prefs[0]?.theme) {
-          theme = prefs[0].theme;
+        const { preferencias } = await contexto();
+        if (alive && preferencias?.theme) {
+          theme = preferencias.theme;
           applyTheme(theme);
         }
       } catch {

@@ -1,8 +1,9 @@
 import { decodePolyline } from "@/lib/geo";
+import { baseRotas } from "@/lib/mapProvider";
 
-// Roteirização por vias reais (OSRM — serviço compatível com a stack Leaflet
-// já usada no app; o Base44 não expõe um serviço de rotas nativo).
-const OSRM = "https://router.project-osrm.org/route/v1/driving/";
+// Roteirização por vias reais. Produção: Mapbox Directions (resposta no mesmo
+// formato do OSRM: routes[].geometry em polyline5, distance, duration).
+// Desenvolvimento sem token: servidor de demonstração do OSRM (ver mapProvider).
 
 function normalize(route) {
   const coords = decodePolyline(route.geometry);
@@ -32,7 +33,9 @@ export async function fetchRoute(from, to, { bearing } = {}) {
     typeof bearing === "number" && !Number.isNaN(bearing)
       ? `&bearings=${Math.round(bearing)},90;`
       : "";
-  const url = `${OSRM}${path}?overview=full&geometries=polyline&alternatives=false&steps=false${bearings}`;
+  const base = baseRotas();
+  if (!base) throw new Error("roteamento não configurado (VITE_MAPBOX_PUBLIC_TOKEN)");
+  const url = `${base.url}${path}?overview=full&geometries=polyline&alternatives=false&steps=false${bearings}${base.sufixo}`;
   try {
     return await request(url);
   } catch {

@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { atribuicaoMapa, urlTiles } from "@/lib/mapProvider";
 
 const STOP_COLOR = {
   entregue: "#15803D",
@@ -84,12 +85,8 @@ export function RouteMap({ route, stops, onStopClick, dark = false }) {
   return (
     <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
       <TileLayer
-        url={
-          dark
-            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
-            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        }
-        attribution='&copy; OpenStreetMap &copy; CARTO'
+        url={urlTiles(dark)}
+        attribution={atribuicaoMapa}
       />
       {trackPoints.length >= 2 && (
         <Polyline

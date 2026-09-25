@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { comprovantesDasRotas, insucessosDasRotas, minhasRotas, paradasDasRotas } from "@/api/app-motorista";
 import { getDriver } from "@/lib/driver";
 import { Icon } from "@/components/rp/Icon";
 import { Sheet } from "@/components/rp/Sheet";
@@ -46,6 +46,7 @@ function buildDaySeries(period, dailyMap) {
 
 export default function Analysis() {
   const [raw, setRaw] = useState(null);
+  const cacheKey = useRef(CACHE_KEY);
   const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [fetchError, setFetchError] = useState(false);
   const [period, setPeriod] = useState(buildPeriod("semana"));
@@ -56,17 +57,19 @@ export default function Analysis() {
   const fetchData = async () => {
     try {
       const { driverId } = await getDriver();
-      const [routes, stops, proofs, failures] = await Promise.all([
-        base44.entities.Route.filter({ driver_id: driverId }, "-date", 200),
-        base44.entities.Stop.list("sequence", 2000),
-        base44.entities.DeliveryProof.list("created_date", 2000),
-        base44.entities.FailureReport.list("created_date", 2000),
+      cacheKey.current = `${CACHE_KEY}:${driverId}`;
+      const routes = await minhasRotas({ limite: 200 });
+      const ids = routes.map((r) => r.id);
+      const [stops, proofs, failures] = await Promise.all([
+        paradasDasRotas(ids, 2000),
+        comprovantesDasRotas(ids, 2000),
+        insucessosDasRotas(ids, 2000),
       ]);
       const data = { routes, stops, proofs, failures };
       setRaw(data);
       setFetchError(false);
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(cacheKey.current, JSON.stringify(data));
       } catch {
         /* storage full */
       }
@@ -79,7 +82,10 @@ export default function Analysis() {
     let alive = true;
     (async () => {
       try {
-        const cached = localStorage.getItem(CACHE_KEY);
+        // Cache por motorista: outro login no mesmo aparelho não vê dados alheios.
+        const { driverId } = await getDriver();
+        cacheKey.current = `${CACHE_KEY}:${driverId}`;
+        const cached = localStorage.getItem(cacheKey.current);
         if (cached && alive) setRaw(JSON.parse(cached));
       } catch {
         /* ignore cache parse errors */
