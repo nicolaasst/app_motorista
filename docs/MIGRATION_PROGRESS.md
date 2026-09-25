@@ -1,6 +1,6 @@
 # MIGRATION_PROGRESS — ngs-driver (Base44 → Supabase)
 
-## Status: ✅ Regra 0 cumprida — pronto para a Fase 1
+## Status: ✅ Regra 0 cumprida · 🟡 Fase 1 em rascunho (`docs/MIGRACAO_ENTIDADES_BASE44.md`), aguardando decisões D1–D4
 
 | data | commit do `main` | resultado |
 |---|---|---|
