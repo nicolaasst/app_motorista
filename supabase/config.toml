@@ -1,0 +1,13 @@
+# Configuração da CLI do Supabase para as Edge Functions do App Motorista.
+# O banco é o projeto compartilhado do TMS (rcweqbvdkskjtzjgpsnl); este repositório
+# não sobe stack local próprio — os testes de banco usam supabase/tests/local/run.sh.
+project_id = "app_motorista"
+
+# Login por CPF/matrícula e recuperação de senha: chamada sem sessão (por isso sem
+# verificação de JWT no gateway); a função tem limite de tentativas próprio.
+[functions.app-motorista-login]
+verify_jwt = false
+
+# Upload/download de arquivos: exige JWT do motorista (portal app-motorista).
+[functions.app-motorista-arquivos]
+verify_jwt = true

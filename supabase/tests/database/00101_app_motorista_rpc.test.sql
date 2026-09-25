@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(70);
+select plan(71);
 
 -- ---------------------------------------------------------------------------
 -- Cenário (como postgres)
@@ -299,6 +299,8 @@ select lives_ok($$ select public.app_motorista_login_registrar('00000000000', '1
   'registra 5 falhas');
 select is((select bloqueado from public.app_motorista_login_resolver('000.000.000-00', '10.0.0.2')), true,
   'login: identificador bloqueado após 5 falhas em 15 min');
+select is((select bloqueado from public.app_motorista_login_resolver('000.000.000-00', '10.0.0.2', 'envio_codigo')), false,
+  'bloqueio do login não bloqueia a recuperação de senha (contexto separado)');
 
 select * from finish();
 rollback;
