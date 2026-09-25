@@ -1,0 +1,115 @@
+{
+  "name": "Route",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "driver_id": {
+      "type": "string"
+    },
+    "vehicle_id": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "shift": {
+      "type": "string",
+      "enum": [
+        "manha",
+        "tarde",
+        "integral"
+      ]
+    },
+    "sector": {
+      "type": "string"
+    },
+    "neighborhoods": {
+      "type": "string"
+    },
+    "planned_stops": {
+      "type": "number"
+    },
+    "planned_km": {
+      "type": "number"
+    },
+    "eta_end": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planejada",
+        "checklist_ok",
+        "em_operacao",
+        "concluida",
+        "retorno_ok",
+        "encerrada"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "odometer_start": {
+      "type": "number"
+    },
+    "odometer_end": {
+      "type": "number"
+    },
+    "odometer_start_photo": {
+      "type": "string"
+    },
+    "odometer_end_photo": {
+      "type": "string"
+    },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "polyline": {
+      "type": "string"
+    },
+    "gps_track": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "t": {
+            "type": "string"
+          },
+          "speed": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "code",
+    "driver_id",
+    "date"
+  ]
+}

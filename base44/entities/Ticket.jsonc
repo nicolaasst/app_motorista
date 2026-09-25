@@ -1,0 +1,78 @@
+{
+  "name": "Ticket",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "driver_id": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "pagamento",
+        "mecanica",
+        "coleta_nfe",
+        "app_sync",
+        "emergencia",
+        "outro"
+      ]
+    },
+    "subject": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "route_code": {
+      "type": "string"
+    },
+    "receipt_code": {
+      "type": "string"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aberto",
+        "em_andamento",
+        "resolvido",
+        "fechado"
+      ]
+    },
+    "central_reply": {
+      "type": "string"
+    },
+    "appointment": {
+      "type": "object",
+      "properties": {
+        "place": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "opened_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "closed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "code",
+    "driver_id",
+    "category",
+    "subject"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "name": "DriverPreferences",
+  "type": "object",
+  "properties": {
+    "driver_id": {
+      "type": "string"
+    },
+    "default_nav_app": {
+      "type": "string",
+      "enum": [
+        "waze",
+        "google_maps",
+        "rotapro"
+      ]
+    },
+    "sound_alerts": {
+      "type": "boolean"
+    },
+    "scan_beep": {
+      "type": "boolean"
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "system",
+        "light",
+        "dark"
+      ]
+    },
+    "orientation_pref": {
+      "type": "string",
+      "enum": [
+        "automatica",
+        "retrato",
+        "paisagem_mapa"
+      ]
+    },
+    "offline_map_area": {
+      "type": "string"
+    },
+    "offline_map_mb": {
+      "type": "number"
+    },
+    "remember_login": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "driver_id"
+  ]
+}

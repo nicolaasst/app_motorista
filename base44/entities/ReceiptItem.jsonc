@@ -1,0 +1,37 @@
+{
+  "name": "ReceiptItem",
+  "type": "object",
+  "properties": {
+    "receipt_id": {
+      "type": "string"
+    },
+    "group": {
+      "type": "string",
+      "enum": [
+        "ganho",
+        "desconto"
+      ]
+    },
+    "label": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "qty": {
+      "type": "number"
+    },
+    "unit_value": {
+      "type": "number"
+    },
+    "value": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "group",
+    "label",
+    "value"
+  ]
+}

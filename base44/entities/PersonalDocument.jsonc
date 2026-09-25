@@ -1,0 +1,47 @@
+{
+  "name": "PersonalDocument",
+  "type": "object",
+  "properties": {
+    "driver_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "cnh",
+        "crlv",
+        "aso"
+      ]
+    },
+    "title": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "valid_until": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "valido",
+        "vencendo",
+        "vencido"
+      ]
+    },
+    "file_url": {
+      "type": "string"
+    },
+    "uploaded_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "driver_id",
+    "kind",
+    "title"
+  ]
+}

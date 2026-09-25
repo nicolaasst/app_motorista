@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Surfaces — NGS Driver (vivid yellow + ink) */
+    --background: 240 10% 97%;             /* #F7F7F9 */
+    --foreground: 0 0% 0%;                /* ink #000000 */
+    --card: 0 0% 100%;                    /* surface #FFFFFF */
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Brand / Primary — ink (black) is the action color */
+    --primary: 50 100% 53%;               /* brand-yellow — primary action */
+    --primary-foreground: 0 0% 0%;       /* ink on yellow */
+    --primary-deep: 0 0% 0%;              /* ink — accent/links on light */
+    --primary-container: 50 100% 53%;    /* brand-yellow — CTA fill */
+    --on-primary-container: 0 0% 0%;      /* ink on yellow */
+    --primary-pressed: 50 88% 47%;       /* brand-yellow-deep */
+
+    /* Secondary — slate */
+    --secondary: 215 25% 37%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-container: 240 9% 94%;
+    --on-secondary-container: 215 25% 27%;
+
+    /* Tertiary */
+    --tertiary: 0 0% 0%;
+    --tertiary-foreground: 0 0% 100%;
+    --tertiary-container: 48 100% 81%;     /* brand-yellow-soft */
+
+    /* Accent — soft yellow fill (icon tiles, light highlights) */
+    --accent: 48 100% 81%;                /* #FFEFA0 */
+    --accent-foreground: 0 0% 0%;          /* ink on soft yellow */
+
+    /* Muted */
+    --muted: 240 9% 94%;                  /* surface-track */
+    --muted-foreground: 240 3% 56%;       /* #8B8B92 */
+
+    /* Destructive / Error */
+    --destructive: 0 72% 51%;             /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    --destructive-pressed: 0 70% 35%;
+    --error: 0 72% 51%;
+    --error-container: 0 94% 94%;         /* #FEE2E2 */
+    --on-error-container: 0 70% 35%;
+
+    /* Borders / Inputs / Rings */
+    --border: 240 8% 90%;                 /* outline #E3E3E7 */
+    --input: 240 8% 86%;
+    --ring: 49 100% 53%;                   /* brand-yellow */
+
+    /* Brand anchors (do not flip with theme) */
+    --onyx: 0 0% 0%;                       /* ink */
+    --onyx-pressed: 0 0% 11%;              /* ink-soft */
+    --lime: 49 100% 53%;                   /* brand-yellow (accent on dark) */
+    --paper: 240 9% 94%;
+    --stone: 240 3% 56%;                   /* muted */
+
+    /* Explicit brand tokens — ink is text/icon/stroke ONLY; navy is background ONLY */
+    --ink: 0 0% 0%;                        /* #000000 — texto/ícone/traço */
+    --ink-soft: 0 0% 11%;                  /* #1D1D1B — textos secundários / pressed */
+    --navy: 229 30% 9%;                    /* #10121E — fundo de telas vitrine */
+    --brand-yellow: 50 100% 53%;          /* #FFD80F — cor de marca dominante */
+    --brand-yellow-light: 50 100% 62%;    /* #FFDF3E — realce sobre o amarelo */
+    --brand-yellow-secondary: 49 100% 57%; /* #FED525 — tom intermediário de gradiente */
+    --brand-yellow-deep: 50 88% 47%;      /* #E0BE0E */
+    --brand-yellow-soft: 48 100% 81%;     /* #FFEFA0 */
+    --surface-track: 240 9% 94%;          /* #EEEEF1 */
+    --outline: 240 8% 90%;                /* #E3E3E7 */
+
+    /* Logistics status system — SEPARATE from brand yellow */
+    --status-green-bg: 135 84% 93%;      /* #DCFCE7 */
+    --status-green-fg: 141 72% 29%;      /* #15803D */
+    --status-amber-bg: 48 93% 89%;       /* #FEF3C7 */
+    --status-amber-fg: 32 95% 44%;       /* #D97706 */
+    --status-red-bg: 0 94% 94%;          /* #FEE2E2 */
+    --status-red-fg: 0 72% 51%;          /* #DC2626 */
+    --status-blue-bg: 214 92% 93%;       /* #DBEAFE */
+    --status-blue-fg: 222 76% 48%;       /* #1D4ED8 */
+    --status-gray-bg: 240 8% 95%;        /* #F1F1F3 */
+    --status-gray-fg: 240 5% 34%;        /* #52525B */
+
+    /* Charts */
+    --chart-1: 49 100% 53%;
+    --chart-2: 0 0% 0%;
+    --chart-3: 50 88% 47%;
+    --chart-4: 0 0% 11%;
+    --chart-5: 0 72% 51%;
+
+    /* Radius */
+    --radius: 1rem;
+
+    /* Typography */
+    --font-heading: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Sidebar (mirrors surface) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 48 100% 81%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 240 8% 90%;
+    --sidebar-ring: 49 100% 53%;
+  }
+
+  .dark {
+    --background: 229 30% 9%;             /* navy */
+    --foreground: 240 9% 94%;
+    --card: 258 16% 12%;
+    --card-foreground: 240 9% 94%;
+    --popover: 258 16% 12%;
+    --popover-foreground: 240 9% 94%;
+    --primary: 50 100% 53%;              /* brand-yellow CTA on dark */
+    --primary-foreground: 0 0% 0%;        /* ink on yellow */
+    --primary-deep: 50 100% 53%;          /* yellow accent text on dark */
+    --primary-container: 50 100% 53%;
+    --on-primary-container: 0 0% 0%;      /* ink on yellow */
+    --primary-pressed: 50 88% 47%;
+    --secondary: 240 9% 20%;
+    --secondary-foreground: 240 9% 94%;
+    --secondary-container: 258 16% 16%;
+    --tertiary: 240 9% 94%;
+    --tertiary-foreground: 258 16% 9%;
+    --tertiary-container: 48 60% 30%;
+    --accent: 48 60% 30%;
+    --accent-foreground: 48 100% 81%;
+    --muted: 258 16% 16%;
+    --muted-foreground: 240 3% 65%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-pressed: 0 70% 35%;
+    --border: 258 16% 18%;
+    --input: 258 16% 22%;
+    --ring: 49 100% 53%;
+    --chart-1: 49 100% 53%;
+    --chart-2: 240 9% 94%;
+    --chart-3: 50 88% 47%;
+    --chart-4: 48 100% 81%;
+    --chart-5: 0 72% 51%;
+    --sidebar-background: 258 16% 12%;
+    --sidebar-foreground: 240 9% 94%;
+    --sidebar-primary: 49 100% 53%;
+    --sidebar-accent: 48 60% 30%;
+    --sidebar-accent-foreground: 48 100% 81%;
+    --sidebar-border: 258 16% 18%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    overscroll-behavior: none;
+  }
+
+  /* Native shell feel: no accidental text selection on interactives, no rubber-banding */
+  button,
+  a,
+  label,
+  .rp-tap,
+  .chip,
+  .material-symbols-outlined {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer components {
+  /* Fluid shell — 100% da largura da viewport, sem max-width fixo */
+  .app-shell {
+    @apply w-full min-h-screen bg-background relative;
+  }
+  .screen-pad {
+    @apply px-5 pb-28 md:px-6 lg:px-8;
+  }
+  /* L1 — card: 1px solid border, no blur */
+  .card {
+    @apply rounded-2xl bg-card border border-border;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold leading-[14px] tracking-[0.04em];
+  }
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, #000000 0%, #1D1D1B 100%);
+  }
+
+  /* Status pills — soft tint surface + deep semiotic text */
+  .status-green { background-color: hsl(var(--status-green-bg)); color: hsl(var(--status-green-fg)); }
+  .status-amber { background-color: hsl(var(--status-amber-bg)); color: hsl(var(--status-amber-fg)); }
+  .status-red { background-color: hsl(var(--status-red-bg)); color: hsl(var(--status-red-fg)); }
+  .status-blue { background-color: hsl(var(--status-blue-bg)); color: hsl(var(--status-blue-fg)); }
+  .status-gray { background-color: hsl(var(--status-gray-bg)); color: hsl(var(--status-gray-fg)); }
+
+  /* Type scale — NGS Driver (vivid yellow + ink) */
+  .text-display-lg { font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -0.02em; }
+  .text-headline-lg { font-size: 28px; line-height: 36px; font-weight: 700; }
+  .text-headline-md { font-size: 22px; line-height: 28px; font-weight: 600; }
+  .text-headline-sm { font-size: 18px; line-height: 24px; font-weight: 600; }
+  .text-body-lg { font-size: 16px; line-height: 24px; font-weight: 500; }
+  .text-body-md { font-size: 14px; line-height: 20px; font-weight: 500; }
+  .text-body-sm { font-size: 12px; line-height: 16px; font-weight: 500; }
+  .text-label-lg { font-size: 14px; line-height: 20px; font-weight: 600; }
+  .text-label-md { font-size: 12px; line-height: 16px; font-weight: 600; }
+  .text-label-sm { font-size: 12px; line-height: 14px; font-weight: 700; letter-spacing: 0.04em; }
+  .text-code-lg { font-family: var(--font-mono); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: 0.06em; }
+  .text-code-md { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 0.04em; }
+  .text-code-sm { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.02em; }
+
+  /* Material Symbols icon font */
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal; font-style: normal;
+    line-height: 1; letter-spacing: normal; text-transform: none;
+    display: inline-block; white-space: nowrap; word-wrap: normal; direction: ltr;
+    -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .rp-tap { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@media (min-width: 768px) {
+  .text-display-lg { font-size: 40px; line-height: 48px; }
+}

@@ -1,0 +1,87 @@
+{
+  "name": "FailureReport",
+  "type": "object",
+  "properties": {
+    "stop_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "cliente_ausente",
+        "endereco_nao_localizado",
+        "recusado",
+        "avaria",
+        "acesso_risco",
+        "outro"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "taken_at": {
+            "type": "string"
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "contact_attempts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "call",
+              "whatsapp"
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "lat": {
+      "type": "number"
+    },
+    "lng": {
+      "type": "number"
+    },
+    "reported_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sync_status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "enviando",
+        "ok",
+        "erro"
+      ]
+    }
+  },
+  "required": [
+    "stop_id",
+    "reason"
+  ]
+}

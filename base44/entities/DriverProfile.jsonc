@@ -1,0 +1,100 @@
+{
+  "name": "DriverProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "matricula": {
+      "type": "string"
+    },
+    "cpf": {
+      "type": "string"
+    },
+    "cnh_number": {
+      "type": "string"
+    },
+    "cnh_category": {
+      "type": "string"
+    },
+    "cnh_expires_at": {
+      "type": "string",
+      "format": "date"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "email_corporate": {
+      "type": "string",
+      "format": "email"
+    },
+    "email_personal": {
+      "type": "string",
+      "format": "email"
+    },
+    "avatar_url": {
+      "type": "string"
+    },
+    "fleet": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string"
+    },
+    "sla_pct": {
+      "type": "number"
+    },
+    "registration_status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo",
+        "suspenso"
+      ]
+    },
+    "address": {
+      "type": "object",
+      "properties": {
+        "cep": {
+          "type": "string"
+        },
+        "logradouro": {
+          "type": "string"
+        },
+        "numero": {
+          "type": "string"
+        },
+        "compl": {
+          "type": "string"
+        },
+        "bairro": {
+          "type": "string"
+        },
+        "cidade": {
+          "type": "string"
+        },
+        "uf": {
+          "type": "string"
+        }
+      }
+    },
+    "emergency_contact": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": [
+    "full_name",
+    "cpf"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Faq",
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string"
+    },
+    "question": {
+      "type": "string"
+    },
+    "answer": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "question",
+    "answer"
+  ]
+}
