@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { entrar } from "@/api/app-motorista";
 import { lembrarLogin } from "@/api/supabaseClient";
 import { Icon } from "@/components/rp/Icon";
-import { LineArt } from "@/components/rp/LineArt";
+import { Logo } from "@/components/rp/Logo";
 import { safeReturnTo } from "@/lib/authReturnTo";
 import { formatarIdentificador } from "@/lib/masks";
 
@@ -39,8 +39,8 @@ export default function Login() {
         <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full bg-brand-yellow-soft/50 blur-2xl" />
         <div className="absolute -left-10 top-10 h-32 w-32 rotate-12 rounded-3xl bg-brand-yellow-soft/40 blur-xl" />
         <div className="relative flex flex-col items-center text-center">
-          <span className="flex h-20 w-20 items-center justify-center rounded-full bg-white shadow-elevated">
-            <LineArt name="truck" className="h-10 w-10 text-ink" />
+          <span className="flex h-28 w-28 items-center justify-center rounded-full bg-white shadow-elevated">
+            <Logo variant="full" size={80} />
           </span>
           <p className="mt-4 text-label-sm uppercase tracking-widest text-ink/60">App Operacional do Motorista</p>
           <h1 className="text-headline-md leading-tight">NGS Transportes</h1>
