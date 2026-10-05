@@ -137,3 +137,7 @@ $fn$;
 
 grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
 revoke execute on function public.custom_access_token_hook(jsonb) from authenticated, anon, public;
+
+-- O app aponta para `veiculos` por (tenant_id, id): a chave primária do TMS é só `id`, então a referência
+-- composta precisa de um índice único (mesmo padrão de motoristas e rotas_planejadas, que já têm PK composta).
+create unique index if not exists veiculos_tenant_id_id_key on public.veiculos (tenant_id, id);

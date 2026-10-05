@@ -76,3 +76,20 @@ escreve em nenhuma, só vê as próprias linhas do app, e não lê dado pessoal 
    de emergência na torre (OQ-21).
 6. **Fase 4 (lojas):** decisão da casca nativa (D18), ícones, política de privacidade,
    builds assinados — não iniciada, aguardando confirmação.
+
+## Alinhamento ao TMS normalizado (2026-10-06, lote 1 da integração)
+- Migrations renomeadas para `20261006100000…100400` (depois da última do TMS, `20261005100000`); editadas no lugar porque nunca foram aplicadas.
+- `app_motorista_perfis.motorista_id uuid` → `motoristas` (CNH removida do perfil; vem do cadastro oficial); `app_motorista_rotas.rota_planejada_id` → `rotas_planejadas`; `veiculo_id` → `veiculos` (rotas e checklists).
+- `veiculos` não tem hodômetro: o app **não grava mais no TMS**; `app_motorista_meu_veiculo` devolve o maior `odometro_km` dos checklists. (Decisão de promover o hodômetro para `veiculos` segue com o dono do produto.)
+- `veiculos_tenant_id_id_key` (índice único) criado na migration A, para a FK composta.
+- `app_motorista_vincular_motorista(p_email, p_nome, p_cpf, p_matricula, p_motorista_id, p_telefone)`: valida motorista ativo no cadastro do TMS.
+- Verificação cruzada: pgTAP do app (116) e do TMS (2.381) verdes juntos; lint, Vitest (11), build e Deno (15) verdes.
+
+## Integração de dados com o TMS (2026-10-06, lotes 2 e 3 — migration F)
+- `rotas_planejadas` ganha `motorista_id`, `veiculo_id` (FKs para o cadastro oficial), `despachada_em` e `despachada_por`.
+- `rota_definir_motorista_veiculo` (tms.operar), `rota_despachar_app` (tms.operar; rota **pronta**, motorista com acesso ao app; republicar enquanto o motorista não iniciou) e `app_motorista_estado_das_rotas` (tms.ver, para a tela J.3).
+- **Volumes:** numerados por parada (`<codigo-rota>-<ordem>-<n>`, a partir da contagem de `rotas_paradas.volumes`); a bipagem vira conferência por contagem até existir o vínculo parada × pedido/etiqueta do embarcador.
+- **GPS → Torre:** trigger em `app_motorista_gps_pontos` grava `telemetria_posicoes` (`fonte = 'app_motorista'`), no máximo 1 ponto a cada 30 s por placa.
+- **Insucesso → ocorrência (K.1):** trigger em `app_motorista_insucessos` abre `ocorrencias` + evento inicial (protocolo `OC-…`). Com pedido do embarcador ligado à parada, a ocorrência vai para o tenant dele; sem vínculo, fica no tenant plataforma, sem pedido.
+- pgTAP `00102` (21 asserções); app 137 + TMS 2.381 verdes juntos.
+- **Ainda não feito:** POD do app → `comprovantes_entrega` do embarcador (exige parada ligada a pedido), emergência → Central de Alertas/Torre, convite de acesso (Edge Function), recibos/FAQ geridos pelo TMS.

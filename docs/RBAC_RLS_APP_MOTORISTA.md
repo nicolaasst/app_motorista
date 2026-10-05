@@ -103,7 +103,7 @@ Todas pequenas e aditivas. É a lista completa do que o app altera fora do prefi
 | `custom_access_token_hook` (função SQL — o hook oficial do TMS; `auth-hook-claims` é órfã) | ramo `app-motorista` (§3); ramos atuais inalterados | médio: é o login de todo mundo → os 1000 testes do TMS (incl. `00002` do hook) passam com a mudança |
 | `roles` (`motorista_terceiro`) | `portal` passa de `interno` para `app-motorista` | nenhum (sem usuários; perfil reservado ao app desde a B0.6) |
 | `leitura_auditada` | 3 linhas novas (§6) | nenhum |
-| `tms_veiculos.hodometro_km` (dado, não estrutura) | as RPCs de checklist só **aumentam** o hodômetro do veículo da rota | nenhum |
+| `veiculos` (TMS) não tem hodômetro | o hodômetro mora no checklist do app (`odometro_km`); `app_motorista_meu_veiculo` devolve o maior valor lido; nada é gravado no TMS | nenhum |
 
 **Nenhuma das 540 policies existentes é alterada.**
 
@@ -224,9 +224,9 @@ insufficient_privilege`. As que recebem `p_chave uuid` consultam/gravam
 
 | RPC | permissão | efeito |
 |---|---|---|
-| `app_motorista_vincular_motorista(p_email, p_motorista_agregado_id, p_cpf, p_matricula, ...)` | `rh.editar` | cria/atualiza `users` (portal `app-motorista`, papel `motorista_terceiro`) + `app_motorista_perfis`; alternativa com permissão a `admin_vincular_usuario` (restrita a `service_role`) |
+| `app_motorista_vincular_motorista(p_email, p_motorista_id, p_cpf, p_matricula, ...)` | `rh.editar` | cria/atualiza `users` (portal `app-motorista`, papel `motorista_terceiro`) + `app_motorista_perfis`; alternativa com permissão a `admin_vincular_usuario` (restrita a `service_role`) |
 | `app_motorista_situacao_motorista(p_user_id, p_situacao)` | `rh.editar` | ativar/suspender (vale no próximo refresh do token, ≤ 1 h — OQ-11) |
-| `app_motorista_publicar_rota(p_rota_roteirizador_id, p_motorista_user_id, p_data, ...)` | `tms.operar` | materializa `rotas` + `paradas` + `volumes` a partir da rota planejada (OQ-04) |
+| `app_motorista_publicar_rota(p_rota_planejada_id, p_motorista_user_id, p_data, ...)` | `tms.operar` | materializa `rotas` + `paradas` + `volumes` a partir da rota planejada (OQ-04) |
 | `app_motorista_emitir_recibo(...)` | `financeiro.lancar` | cria recibo + itens + rotas; status `pendente_assinatura` |
 | `app_motorista_decidir_troca_conta(p_conta_id, p_aprovar)` | `financeiro.aprovar` | |
 | `app_motorista_tratar_emergencia(p_id, p_status, p_notas)` | `tms.operar` | reconhecer / em atendimento / encerrar / falso alarme |

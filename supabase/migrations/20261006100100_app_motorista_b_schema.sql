@@ -77,13 +77,10 @@ comment on table public.app_motorista_config is
 create table public.app_motorista_perfis (
   user_id uuid primary key references auth.users(id) on delete cascade,
   tenant_id uuid not null references public.tenants(id),
-  motorista_agregado_id text,
+  motorista_id uuid,
   nome_completo text not null check (length(btrim(nome_completo)) between 3 and 120),
   matricula text check (matricula ~ '^[0-9A-Za-z.-]{1,30}$'),
   cpf text not null check (cpf ~ '^[0-9]{11}$'),
-  cnh_numero text,
-  cnh_categoria text,
-  cnh_validade date,
   telefone text,
   email_corporativo text,
   email_pessoal text,
@@ -97,13 +94,13 @@ create table public.app_motorista_perfis (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz,
-  foreign key (tenant_id, motorista_agregado_id)
-    references public.motoristas_agregados(tenant_id, id) on delete set null (motorista_agregado_id),
+  foreign key (tenant_id, motorista_id)
+    references public.motoristas(tenant_id, id) on delete set null (motorista_id),
   unique (tenant_id, cpf),
   unique (tenant_id, matricula)
 );
 comment on table public.app_motorista_perfis is
-  'App Motorista: cadastro completo do motorista (1:1 com auth.users). Dado pessoal: sem grant para authenticated; motorista lê pela RPC app_motorista_contexto, interno por ler_dado_sensivel.';
+  'App Motorista: cadastro do acesso do motorista (1:1 com auth.users), ligado ao cadastro oficial do TMS (motoristas, que guarda a CNH). Dado pessoal: sem grant para authenticated; motorista lê pela RPC app_motorista_contexto, interno por ler_dado_sensivel.';
 create index app_motorista_perfis_tenant_idx on public.app_motorista_perfis (tenant_id, situacao_cadastro);
 
 create table public.app_motorista_preferencias (
@@ -131,8 +128,8 @@ create table public.app_motorista_rotas (
   tenant_id uuid not null references public.tenants(id),
   codigo text not null check (length(codigo) between 1 and 40),
   motorista_id uuid not null references public.app_motorista_perfis(user_id),
-  rota_roteirizador_id text,
-  tms_veiculo_id text,
+  rota_planejada_id uuid,
+  veiculo_id uuid,
   data date not null,
   turno text check (turno in ('manha', 'tarde', 'integral')),
   setor text,
@@ -154,14 +151,14 @@ create table public.app_motorista_rotas (
   updated_at timestamptz not null default now(),
   deleted_at timestamptz,
   unique (tenant_id, codigo),
-  foreign key (tenant_id, rota_roteirizador_id)
-    references public.rotas_roteirizador(tenant_id, id) on delete set null (rota_roteirizador_id),
-  foreign key (tenant_id, tms_veiculo_id)
-    references public.tms_veiculos(tenant_id, id) on delete set null (tms_veiculo_id),
+  foreign key (tenant_id, rota_planejada_id)
+    references public.rotas_planejadas(tenant_id, id) on delete set null (rota_planejada_id),
+  foreign key (tenant_id, veiculo_id)
+    references public.veiculos(tenant_id, id) on delete set null (veiculo_id),
   check (odometro_final is null or odometro_inicial is null or odometro_final >= odometro_inicial)
 );
 comment on table public.app_motorista_rotas is
-  'App Motorista: execução da rota pelo motorista (fato tipado). Referencia a rota planejada (rotas_roteirizador) e o veículo (tms_veiculos) do TMS.';
+  'App Motorista: execução da rota pelo motorista (fato tipado). Referencia a rota planejada (rotas_planejadas) e o veículo (veiculos) do TMS.';
 create index app_motorista_rotas_motorista_idx on public.app_motorista_rotas (tenant_id, motorista_id, data desc);
 create index app_motorista_rotas_status_idx on public.app_motorista_rotas (tenant_id, status, data) where deleted_at is null;
 
@@ -298,7 +295,7 @@ create table public.app_motorista_checklists (
   tenant_id uuid not null references public.tenants(id),
   rota_id uuid not null references public.app_motorista_rotas(id),
   motorista_id uuid not null references public.app_motorista_perfis(user_id),
-  tms_veiculo_id text,
+  veiculo_id uuid,
   tipo text not null check (tipo in ('pre', 'retorno')),
   itens jsonb not null check (jsonb_typeof(itens) = 'array'),
   odometro_km numeric(10,1) not null check (odometro_km >= 0),
@@ -313,8 +310,8 @@ create table public.app_motorista_checklists (
   updated_at timestamptz not null default now(),
   deleted_at timestamptz,
   unique (rota_id, tipo),
-  foreign key (tenant_id, tms_veiculo_id)
-    references public.tms_veiculos(tenant_id, id) on delete set null (tms_veiculo_id)
+  foreign key (tenant_id, veiculo_id)
+    references public.veiculos(tenant_id, id) on delete set null (veiculo_id)
 );
 comment on table public.app_motorista_checklists is 'App Motorista: checklist do veículo antes (pre) e depois (retorno) da rota.';
 create index app_motorista_checklists_motorista_idx on public.app_motorista_checklists (tenant_id, motorista_id, rota_id);

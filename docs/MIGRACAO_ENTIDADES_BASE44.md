@@ -32,7 +32,7 @@ Supabase `rcweqbvdkskjtzjgpsnl`, lido em 2026-09-25 (somente leitura: `informati
    RPC), nunca copiado; o que o TMS só tem como texto de tela, e o app precisa como fato
    tipado, vira tabela `app_motorista_*` referenciando a projeção do TMS.**
 2. **Tenant:** os dados operacionais (`motoristas_agregados`, `rotas_roteirizador`,
-   `tms_veiculos`) estão no tenant **plataforma** (`NEXUSLOG`, `tenants.tipo = 'plataforma'`).
+   `veiculos`) estão no tenant **plataforma** (`NEXUSLOG`, `tenants.tipo = 'plataforma'`).
    Os tenants `cliente` são embarcadores (pedidos, etiquetas, chamados deles). Os motoristas
    pertencem ao tenant plataforma. Consequência de segurança em `docs/RBAC_RLS_APP_MOTORISTA.md` §2.
 3. PKs do TMS são compostas `(tenant_id, id text)` ou `(tenant_id, codigo)`. As FKs daqui para
@@ -70,8 +70,8 @@ Legenda: **TMS** = usa objeto existente do TMS · **NOVA** = tabela `app_motoris
 | `User` | TMS | `auth.users` + `public.users` (`portal='app-motorista'`, papel `motorista_terceiro`) |
 | `DriverProfile` | NOVA | `app_motorista_perfis` → FK para `motoristas_agregados` |
 | `DriverPreferences` | NOVA | `app_motorista_preferencias` |
-| `Vehicle` | TMS | `tms_veiculos` (leitura via RPC; hodômetro atualizado por RPC) |
-| `Route` | NOVA | `app_motorista_rotas` → FK para `rotas_roteirizador` e `tms_veiculos` |
+| `Vehicle` | TMS | `veiculos` (leitura via RPC; hodômetro lido dos checklists do app) |
+| `Route` | NOVA | `app_motorista_rotas` → FK para `rotas_planejadas` e `veiculos` |
 | `Route.gps_track` | NOVA | `app_motorista_gps_pontos` (particionada) |
 | `Stop` | NOVA | `app_motorista_paradas` |
 | `Volume` | NOVA | `app_motorista_volumes` → referência a `etiquetas` |
@@ -103,12 +103,11 @@ PK `user_id uuid → auth.users(id) on delete cascade` (sem `id` próprio; 1:1 c
 | coluna | tipo | app | nota |
 |---|---|---|---|
 | `user_id` | uuid PK | `user_id` | = `auth.uid()` do motorista |
-| `motorista_agregado_id` | text | — | FK composta `(tenant_id, motorista_agregado_id) → motoristas_agregados(tenant_id, id)`, nullable até a central vincular |
+| `motorista_id` | uuid | — | FK composta `(tenant_id, motorista_id) → motoristas(tenant_id, id)`, nullable até a central vincular |
 | `nome_completo` | text not null | `full_name` | |
 | `matricula` | text | `matricula` | `unique (tenant_id, matricula)` |
 | `cpf` | text not null | `cpf` | só dígitos, `unique (tenant_id, cpf)`; o TMS só guarda `cpf_mascarado` |
-| `cnh_numero`, `cnh_categoria` | text | `cnh_number`, `cnh_category` | ver OQ-05 (sobreposição com `motoristas_agregados`/`condutores`) |
-| `cnh_validade` | date | `cnh_expires_at` | |
+| ~~`cnh_numero`, `cnh_categoria`, `cnh_validade`~~ | — | `cnh_number`, `cnh_category`, `cnh_expires_at` | removidas do perfil: a CNH vem de `motoristas` (TMS) e `app_motorista_contexto` a devolve no mesmo formato |
 | `telefone` | text | `phone` | |
 | `email_corporativo` | text | `email_corporate` | e-mail de login |
 | `email_pessoal` | text | `email_personal` | |
@@ -141,8 +140,8 @@ PK `user_id uuid → app_motorista_perfis(user_id)`.
 |---|---|---|---|
 | `codigo` | text not null | `code` | `unique (tenant_id, codigo)` |
 | `motorista_id` | uuid → perfis | `driver_id` | |
-| `rota_roteirizador_id` | text | — | FK composta → `rotas_roteirizador(tenant_id, id)`: a rota planejada no TMS |
-| `tms_veiculo_id` | text | `vehicle_id` | FK composta → `tms_veiculos(tenant_id, id)` |
+| `rota_planejada_id` | uuid | — | FK composta → `rotas_planejadas(tenant_id, id)`: a rota planejada no TMS |
+| `veiculo_id` | uuid | `vehicle_id` | FK composta → `veiculos(tenant_id, id)` (índice único `veiculos_tenant_id_id_key`, criado na migration A) |
 | `data` | date not null | `date` | |
 | `turno` | text CHECK (`manha`,`tarde`,`integral`) | `shift` | |
 | `setor` | text | `sector` | |
@@ -358,7 +357,7 @@ Retenção: 90 dias (OQ-07).
 | `users`, `roles` | vínculo da conta, papel `motorista_terceiro` | hook de claims | `admin_vincular_usuario` (central) |
 | `motoristas_agregados` | cadastro operacional do motorista | FK de `perfis` | — |
 | `rotas_roteirizador` | rota planejada | fonte para publicar a rota do app (RPC interna) | — |
-| `tms_veiculos` | veículo da rota | RPC `app_motorista_meu_veiculo()` | `hodometro_km` via RPC de checklist, só se maior que o atual |
+| `veiculos` | veículo da rota | RPC `app_motorista_meu_veiculo()` | sem escrita no TMS; hodômetro lido dos checklists; (antes: `hodometro_km` na vitrine, só se maior que o atual |
 | `tickets_atendimento`, `mensagens_ticket` | chamados | RPCs do app | RPCs do app (mesma regra de negócio das RPCs `atendimento_*`) |
 | `documents` | todos os anexos | RPC/Edge Function | Edge Function de upload |
 | `apuracoes_frete_terceiros` | origem do recibo | FK de `recibos` | — |
