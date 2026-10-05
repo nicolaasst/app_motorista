@@ -93,3 +93,9 @@ escreve em nenhuma, só vê as próprias linhas do app, e não lê dado pessoal 
 - **Insucesso → ocorrência (K.1):** trigger em `app_motorista_insucessos` abre `ocorrencias` + evento inicial (protocolo `OC-…`). Com pedido do embarcador ligado à parada, a ocorrência vai para o tenant dele; sem vínculo, fica no tenant plataforma, sem pedido.
 - pgTAP `00102` (21 asserções); app 137 + TMS 2.381 verdes juntos.
 - **Ainda não feito:** POD do app → `comprovantes_entrega` do embarcador (exige parada ligada a pedido), emergência → Central de Alertas/Torre, convite de acesso (Edge Function), recibos/FAQ geridos pelo TMS.
+
+## POD, emergências e leituras para o TMS (migration G)
+- **POD → embarcador:** trigger em `app_motorista_comprovantes` grava `comprovantes_entrega` no tenant do embarcador e conclui a `ordens_rastreio` de mesmo código **só quando a parada está ligada a um pedido existente**; sem vínculo nada é projetado. Insucesso ligado a pedido marca a ordem como `tentativa_falha` com o motivo. A tabela é a da vitrine do A.12 (campos de texto obrigatórios): o que o app não tem vai vazio.
+- **Emergências:** `app_motorista_emergencias_abertas()` (tms.ver) para a Torre; tratar segue em `app_motorista_tratar_emergencia` (tms.operar).
+- **Leituras:** `app_motorista_acessos`, `app_motorista_config_ler`, `app_motorista_faq_lista`, `app_motorista_recibos_lista`; `app_motorista_emitir_recibo` numera o recibo (`RC-AAAA-NNNNN`) quando o código não vem.
+- pgTAP `00104` (24 asserções).
