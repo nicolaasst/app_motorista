@@ -76,3 +76,11 @@ escreve em nenhuma, só vê as próprias linhas do app, e não lê dado pessoal 
    de emergência na torre (OQ-21).
 6. **Fase 4 (lojas):** decisão da casca nativa (D18), ícones, política de privacidade,
    builds assinados — não iniciada, aguardando confirmação.
+
+## Alinhamento ao TMS normalizado (2026-10-06, lote 1 da integração)
+- Migrations renomeadas para `20261006100000…100400` (depois da última do TMS, `20261005100000`); editadas no lugar porque nunca foram aplicadas.
+- `app_motorista_perfis.motorista_id uuid` → `motoristas` (CNH removida do perfil; vem do cadastro oficial); `app_motorista_rotas.rota_planejada_id` → `rotas_planejadas`; `veiculo_id` → `veiculos` (rotas e checklists).
+- `veiculos` não tem hodômetro: o app **não grava mais no TMS**; `app_motorista_meu_veiculo` devolve o maior `odometro_km` dos checklists. (Decisão de promover o hodômetro para `veiculos` segue com o dono do produto.)
+- `veiculos_tenant_id_id_key` (índice único) criado na migration A, para a FK composta.
+- `app_motorista_vincular_motorista(p_email, p_nome, p_cpf, p_matricula, p_motorista_id, p_telefone)`: valida motorista ativo no cadastro do TMS.
+- Verificação cruzada: pgTAP do app (116) e do TMS (2.381) verdes juntos; lint, Vitest (11), build e Deno (15) verdes.

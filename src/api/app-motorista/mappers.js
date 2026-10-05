@@ -10,7 +10,7 @@ export function rota(r) {
     id: r.id,
     code: r.codigo,
     driver_id: r.motorista_id,
-    vehicle_id: r.tms_veiculo_id,
+    vehicle_id: r.veiculo_id,
     date: r.data,
     shift: r.turno,
     sector: r.setor,

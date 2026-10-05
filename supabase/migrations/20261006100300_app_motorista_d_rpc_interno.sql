@@ -37,8 +37,7 @@ revoke all on function public.app_motorista_exigir_interno(text) from public, an
 -- perfil motorista_terceiro) + perfil completo + preferências padrão.
 create or replace function public.app_motorista_vincular_motorista(
   p_email text, p_nome text, p_cpf text, p_matricula text default null,
-  p_motorista_agregado_id text default null, p_telefone text default null,
-  p_cnh_numero text default null, p_cnh_categoria text default null, p_cnh_validade date default null)
+  p_motorista_id uuid default null, p_telefone text default null)
 returns uuid
 language plpgsql
 security definer
@@ -53,6 +52,10 @@ declare
 begin
   if (select t.tipo from public.tenants t where t.id = v_tenant) is distinct from 'plataforma' then
     raise exception 'Motoristas são cadastrados pelo tenant plataforma' using errcode = '42501';
+  end if;
+  if p_motorista_id is not null and not exists (select 1 from public.motoristas m where m.tenant_id = v_tenant
+       and m.id = p_motorista_id and m.status = 'ativo' and m.deleted_at is null) then
+    raise exception 'Motorista ativo não encontrado no cadastro do TMS' using errcode = 'P0002';
   end if;
   if v_cpf !~ '^[0-9]{11}$' then
     raise exception 'CPF inválido' using errcode = '22023';
@@ -74,18 +77,14 @@ begin
     set tenant_id = excluded.tenant_id, role_id = excluded.role_id, nome = excluded.nome,
         portal = excluded.portal, ativo = true;
 
-  insert into public.app_motorista_perfis (user_id, tenant_id, motorista_agregado_id, nome_completo, matricula, cpf,
-    telefone, email_corporativo, cnh_numero, cnh_categoria, cnh_validade, situacao_cadastro)
-  values (v_user, v_tenant, nullif(btrim(p_motorista_agregado_id), ''), btrim(p_nome), nullif(btrim(p_matricula), ''), v_cpf,
-    nullif(btrim(p_telefone), ''), lower(btrim(p_email)), nullif(btrim(p_cnh_numero), ''), nullif(btrim(p_cnh_categoria), ''),
-    p_cnh_validade, 'ativo')
+  insert into public.app_motorista_perfis (user_id, tenant_id, motorista_id, nome_completo, matricula, cpf,
+    telefone, email_corporativo, situacao_cadastro)
+  values (v_user, v_tenant, p_motorista_id, btrim(p_nome), nullif(btrim(p_matricula), ''), v_cpf,
+    nullif(btrim(p_telefone), ''), lower(btrim(p_email)), 'ativo')
   on conflict (user_id) do update
-    set motorista_agregado_id = excluded.motorista_agregado_id, nome_completo = excluded.nome_completo,
+    set motorista_id = excluded.motorista_id, nome_completo = excluded.nome_completo,
         matricula = excluded.matricula, cpf = excluded.cpf, telefone = coalesce(excluded.telefone, public.app_motorista_perfis.telefone),
         email_corporativo = excluded.email_corporativo,
-        cnh_numero = coalesce(excluded.cnh_numero, public.app_motorista_perfis.cnh_numero),
-        cnh_categoria = coalesce(excluded.cnh_categoria, public.app_motorista_perfis.cnh_categoria),
-        cnh_validade = coalesce(excluded.cnh_validade, public.app_motorista_perfis.cnh_validade),
         situacao_cadastro = 'ativo', deleted_at = null;
 
   insert into public.app_motorista_preferencias (user_id, tenant_id) values (v_user, v_tenant)
@@ -196,8 +195,8 @@ begin
   update public.app_motorista_rotas set
     motorista_id = p_motorista_id,
     data = (p_rota ->> 'data')::date,
-    rota_roteirizador_id = nullif(p_rota ->> 'rota_roteirizador_id', ''),
-    tms_veiculo_id = nullif(p_rota ->> 'tms_veiculo_id', ''),
+    rota_planejada_id = nullif(p_rota ->> 'rota_planejada_id', '')::uuid,
+    veiculo_id = nullif(p_rota ->> 'veiculo_id', '')::uuid,
     turno = nullif(p_rota ->> 'turno', ''),
     setor = nullif(p_rota ->> 'setor', ''),
     bairros = coalesce((select array_agg(x) from jsonb_array_elements_text(p_rota -> 'bairros') x), '{}'),
@@ -446,7 +445,7 @@ $fn$;
 -- ==========================================================================
 -- Grants
 -- ==========================================================================
-revoke all on function public.app_motorista_vincular_motorista(text, text, text, text, text, text, text, text, date) from public, anon;
+revoke all on function public.app_motorista_vincular_motorista(text, text, text, text, uuid, text) from public, anon;
 revoke all on function public.app_motorista_definir_situacao(uuid, text) from public, anon;
 revoke all on function public.app_motorista_registrar_documento_pessoal(uuid, text, text, text, date, uuid) from public, anon;
 revoke all on function public.app_motorista_publicar_rota(uuid, jsonb) from public, anon;
@@ -457,7 +456,7 @@ revoke all on function public.app_motorista_marcar_recibo_pago(uuid, timestamptz
 revoke all on function public.app_motorista_cadastrar_conta(uuid, text, text, text, text, text, text, text) from public, anon;
 revoke all on function public.app_motorista_salvar_faq(uuid, text, text, text, integer, boolean) from public, anon;
 
-grant execute on function public.app_motorista_vincular_motorista(text, text, text, text, text, text, text, text, date) to authenticated;
+grant execute on function public.app_motorista_vincular_motorista(text, text, text, text, uuid, text) to authenticated;
 grant execute on function public.app_motorista_definir_situacao(uuid, text) to authenticated;
 grant execute on function public.app_motorista_registrar_documento_pessoal(uuid, text, text, text, date, uuid) to authenticated;
 grant execute on function public.app_motorista_publicar_rota(uuid, jsonb) to authenticated;

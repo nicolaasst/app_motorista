@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(41);
+select plan(42);
 
 -- ---------------------------------------------------------------------------
 -- Cenário
@@ -40,9 +40,18 @@ insert into public.app_motorista_perfis (user_id, tenant_id, nome_completo, matr
   ('a1a1a1a1-0000-0000-0000-000000000100', '00000000-0000-4000-8000-00000000a001', 'Motorista A', 'M100A', '11122233344', 'motorista.a@teste.local'),
   ('b2b2b2b2-0000-0000-0000-000000000100', '00000000-0000-4000-8000-00000000a001', 'Motorista B', 'M100B', '55566677788', 'motorista.b@teste.local');
 
-insert into public.app_motorista_rotas (id, tenant_id, codigo, motorista_id, data, tms_veiculo_id) values
-  ('a0000000-0000-0000-0000-00000000a100', '00000000-0000-4000-8000-00000000a001', 'R100-A', 'a1a1a1a1-0000-0000-0000-000000000100', current_date, 'vei-1'),
-  ('b0000000-0000-0000-0000-00000000b100', '00000000-0000-4000-8000-00000000a001', 'R100-B', 'b2b2b2b2-0000-0000-0000-000000000100', current_date, 'vei-2');
+-- Cadastros normalizados do TMS (alvos das FKs do app e das checagens de isolamento).
+insert into public.veiculos (id, tenant_id, placa, modelo) values
+  ('ee100000-0000-0000-0000-00000000000a', '00000000-0000-4000-8000-00000000a001', 'TST1A00', 'Teste A'),
+  ('ee100000-0000-0000-0000-00000000000b', '00000000-0000-4000-8000-00000000a001', 'TST1B00', 'Teste B');
+insert into public.motoristas (id, tenant_id, nome, vinculo) values
+  ('f0100000-0000-0000-0000-00000000000a', '00000000-0000-4000-8000-00000000a001', 'Motorista Cadastro A', 'proprio');
+insert into public.rotas_planejadas (id, tenant_id, seq, codigo, data_planejada) values
+  ('ac100000-0000-0000-0000-00000000000a', '00000000-0000-4000-8000-00000000a001', 91000, 'RP-T100', current_date);
+
+insert into public.app_motorista_rotas (id, tenant_id, codigo, motorista_id, data, veiculo_id) values
+  ('a0000000-0000-0000-0000-00000000a100', '00000000-0000-4000-8000-00000000a001', 'R100-A', 'a1a1a1a1-0000-0000-0000-000000000100', current_date, 'ee100000-0000-0000-0000-00000000000a'),
+  ('b0000000-0000-0000-0000-00000000b100', '00000000-0000-4000-8000-00000000a001', 'R100-B', 'b2b2b2b2-0000-0000-0000-000000000100', current_date, 'ee100000-0000-0000-0000-00000000000b');
 -- tenant/motorista das filhas vêm do trigger (valores errados de propósito)
 insert into public.app_motorista_paradas (id, tenant_id, rota_id, motorista_id, sequencia, destinatario_nome) values
   ('a0000000-0000-0000-0000-0000000a1001', 'cccccccc-0000-0000-0000-0000000100c1', 'a0000000-0000-0000-0000-00000000a100',
@@ -131,6 +140,10 @@ select throws_ok($$ insert into public.tickets_atendimento (tenant_id, codigo, s
 update public.motoristas_agregados set nome = 'hack';
 select is((select count(*)::int from public.motoristas_agregados), 0,
   'motorista não enxerga motoristas_agregados (o update acima não alcança nenhuma linha)');
+select is((select (select count(*) from public.motoristas) + (select count(*) from public.veiculos)
+  + (select count(*) from public.rotas_planejadas) + (select count(*) from public.rotas_paradas)
+  + (select count(*) from public.telemetria_posicoes) + (select count(*) from public.ocorrencias))::int, 0,
+  'motorista não enxerga as tabelas normalizadas do TMS (motoristas, veiculos, rotas, telemetria, ocorrencias)');
 select throws_ok($$ select * from public.ler_dado_sensivel('colaboradores') $$, '42501', null,
   'motorista não usa a leitura auditada do TMS');
 select throws_ok($$ select public.atendimento_abrir_chamado('a', 'b', 'c', 'd') $$, '42501', null,

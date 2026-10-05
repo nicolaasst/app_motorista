@@ -265,7 +265,7 @@ declare
 begin
   select * into eu from public.app_motorista_eu();
   return jsonb_build_object(
-    'perfil', (select to_jsonb(p) - 'deleted_at' - 'tenant_id' from public.app_motorista_perfis p where p.user_id = eu.o_motorista),
+    'perfil', (select to_jsonb(p) - 'deleted_at' - 'tenant_id' || coalesce((select jsonb_build_object('cnh_numero', m.cnh_numero, 'cnh_categoria', m.cnh_categoria, 'cnh_validade', m.cnh_validade) from public.motoristas m where m.tenant_id = p.tenant_id and m.id = p.motorista_id), '{}'::jsonb) from public.app_motorista_perfis p where p.user_id = eu.o_motorista),
     'preferencias', coalesce(
       (select to_jsonb(x) - 'tenant_id' from public.app_motorista_preferencias x where x.user_id = eu.o_motorista),
       jsonb_build_object('user_id', eu.o_motorista, 'app_navegacao', 'google_maps', 'alertas_sonoros', true,
@@ -288,10 +288,10 @@ set search_path = ''
 as $fn$
 declare
   eu record;
-  v_veiculo text;
+  v_veiculo uuid;
 begin
   select * into eu from public.app_motorista_eu();
-  select r.tms_veiculo_id into v_veiculo
+  select r.veiculo_id into v_veiculo
   from public.app_motorista_rotas r
   where r.tenant_id = eu.o_tenant and r.motorista_id = eu.o_motorista and r.deleted_at is null
     and (p_rota_id is null or r.id = p_rota_id)
@@ -300,12 +300,15 @@ begin
   if v_veiculo is null then
     return null;
   end if;
+  -- `veiculos` (TMS) não guarda hodômetro: o último valor conhecido é o maior lido nos checklists do app.
   return (
-    select jsonb_build_object('id', v.id, 'placa', v.placa, 'modelo', v.modelo, 'codigo_interno', v.codigo_interno,
-      'tipo_label', v.tipo_label, 'ano_label', v.ano_label, 'capacidade_label', v.capacidade_label,
-      'hodometro_km', v.hodometro_km, 'status_operacional', v.status_operacional)
-    from public.tms_veiculos v
-    where v.tenant_id = eu.o_tenant and v.id = v_veiculo and v.deleted_at is null);
+    select jsonb_build_object('id', v.id, 'placa', v.placa, 'modelo', v.modelo, 'codigo_interno', v.frota_codigo,
+      'tipo_label', v.tipo_badge_label, 'ano_label', v.fab_mod_label, 'capacidade_label', v.pbt_label,
+      'hodometro_km', (select max(c.odometro_km) from public.app_motorista_checklists c
+                        where c.tenant_id = v.tenant_id and c.veiculo_id = v.id and c.deleted_at is null),
+      'status_operacional', v.status_label)
+    from public.veiculos v
+    where v.tenant_id = eu.o_tenant and v.id = v_veiculo and v.deleted_at is null and v.ativo);
 end;
 $fn$;
 
@@ -447,9 +450,9 @@ begin
     raise exception 'Odômetro inválido' using errcode = '22023';
   end if;
 
-  insert into public.app_motorista_checklists (tenant_id, rota_id, motorista_id, tms_veiculo_id, tipo, itens,
+  insert into public.app_motorista_checklists (tenant_id, rota_id, motorista_id, veiculo_id, tipo, itens,
     odometro_km, declaracao_aceita, concluido_em, chave_idempotencia)
-  values (eu.o_tenant, p_rota_id, eu.o_motorista, v_rota.tms_veiculo_id, 'pre', p_itens,
+  values (eu.o_tenant, p_rota_id, eu.o_motorista, v_rota.veiculo_id, 'pre', p_itens,
     p_odometro, true, v_momento, p_chave)
   returning id into v_checklist;
 
@@ -464,13 +467,7 @@ begin
          foto_odometro_inicial_id = p_foto_odometro_id
    where id = p_rota_id;
 
-  -- Hodômetro do veículo no TMS só avança.
-  if v_rota.tms_veiculo_id is not null then
-    update public.tms_veiculos
-       set hodometro_km = p_odometro
-     where tenant_id = eu.o_tenant and id = v_rota.tms_veiculo_id
-       and (hodometro_km is null or hodometro_km < p_odometro);
-  end if;
+  -- O hodômetro fica no checklist (odometro_km); `veiculos` do TMS não tem essa coluna.
 
   return public.app_motorista_idem_concluir(p_chave, jsonb_build_object(
     'rota_id', p_rota_id, 'status', 'em_operacao', 'iniciada_em', v_momento, 'checklist_id', v_checklist));
@@ -843,9 +840,9 @@ begin
     raise exception 'Odômetro final menor que o inicial (% km)', v_rota.odometro_inicial using errcode = '22023';
   end if;
 
-  insert into public.app_motorista_checklists (tenant_id, rota_id, motorista_id, tms_veiculo_id, tipo, itens,
+  insert into public.app_motorista_checklists (tenant_id, rota_id, motorista_id, veiculo_id, tipo, itens,
     odometro_km, declaracao_aceita, concluido_em, chave_idempotencia)
-  values (eu.o_tenant, p_rota_id, eu.o_motorista, v_rota.tms_veiculo_id, 'retorno', p_itens,
+  values (eu.o_tenant, p_rota_id, eu.o_motorista, v_rota.veiculo_id, 'retorno', p_itens,
     p_odometro, true, v_momento, p_chave)
   returning id into v_checklist;
 
@@ -860,12 +857,7 @@ begin
          foto_odometro_final_id = p_foto_odometro_id
    where id = p_rota_id;
 
-  if v_rota.tms_veiculo_id is not null then
-    update public.tms_veiculos
-       set hodometro_km = p_odometro
-     where tenant_id = eu.o_tenant and id = v_rota.tms_veiculo_id
-       and (hodometro_km is null or hodometro_km < p_odometro);
-  end if;
+  -- O hodômetro fica no checklist (odometro_km); `veiculos` do TMS não tem essa coluna.
 
   return public.app_motorista_idem_concluir(p_chave, jsonb_build_object(
     'rota_id', p_rota_id, 'status', 'encerrada', 'finalizada_em', v_momento, 'checklist_id', v_checklist));
@@ -1045,7 +1037,7 @@ begin
          endereco = coalesce(p_endereco, endereco),
          contato_emergencia = coalesce(p_contato_emergencia, contato_emergencia)
    where user_id = eu.o_motorista;
-  return (select to_jsonb(p) - 'deleted_at' - 'tenant_id' from public.app_motorista_perfis p where p.user_id = eu.o_motorista);
+  return (select to_jsonb(p) - 'deleted_at' - 'tenant_id' || coalesce((select jsonb_build_object('cnh_numero', m.cnh_numero, 'cnh_categoria', m.cnh_categoria, 'cnh_validade', m.cnh_validade) from public.motoristas m where m.tenant_id = p.tenant_id and m.id = p.motorista_id), '{}'::jsonb) from public.app_motorista_perfis p where p.user_id = eu.o_motorista);
 end;
 $fn$;
 

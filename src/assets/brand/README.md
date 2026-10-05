@@ -13,5 +13,5 @@ arquivo não existir, o app usa a imagem atual.
 | `mascote-quadrado-cambalhota.png` | Conclusão de rota | ~512 px, fundo transparente |
 | `mascote-arredondado-acenando.png` | Conclusão de rota | ~512 px, fundo transparente |
 
-Ícones do PWA/lojas (`public/icons/icon-192.png`, `icon-512.png`,
-`icon-maskable-512.png`) e `public/logo.png` (favicon): ver `public/icons/README.md`.
+Ícones do PWA/lojas (`public/icons/icon-192x192.png`, `icon-512x512.png`,
+`maskable-icon-512x512.png`) e `public/logo.png` (favicon): ver `public/icons/README.md`.

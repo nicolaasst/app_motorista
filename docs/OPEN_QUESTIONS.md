@@ -10,7 +10,7 @@ de decisão.
 | OQ-02 | tenant dos motoristas | **resolvida** | todos no tenant plataforma; o trigger recusa `app-motorista` em tenant `cliente` |
 | OQ-03 | raio do geofence | padrão | 150 m, por tenant em `app_motorista_config.raio_geofence_m`; fora do raio **não bloqueia**, fica registrado (`dentro_geofence = false`) |
 | OQ-04 | como a rota chega ao app | **aberta (integração do TMS)** | RPC `app_motorista_publicar_rota` pronta, com formato explícito (`docs/OPERACAO_APP_MOTORISTA.md` §5). Falta o TMS chamar a partir do roteirizador (`rotas_roteirizador.paradas` é `jsonb` de tela, sem volumes) |
-| OQ-05 | fonte do cadastro do motorista (CNH etc.) | padrão | `app_motorista_perfis` guarda o cadastro completo; o TMS segue com as projeções dele |
+| OQ-05 | fonte do cadastro do motorista (CNH etc.) | **resolvida (2026-10-06)**: CNH vem de `motoristas` do TMS; anterior: padrão | `app_motorista_perfis` guarda o cadastro completo; o TMS segue com as projeções dele |
 | OQ-06 | pedidos/etiquetas de outro tenant | padrão | referência sem FK (`pedido_tenant_id` + `pedido_id`, `etiqueta_tenant_id` + `etiqueta_codigo`) |
 | OQ-07 | retenção de localização (LGPD) | padrão | GPS 180 dias (configurável), idempotência 90 dias; rotina mensal em `docs/OPERACAO_APP_MOTORISTA.md` §1.3 até haver `pg_cron` |
 | OQ-08 | push no celular | aberta (Fase 4) | `notification_log` só aceita `email`/`whatsapp`; hoje o app lê a caixa de entrada ao abrir. Push entra com a casca nativa |

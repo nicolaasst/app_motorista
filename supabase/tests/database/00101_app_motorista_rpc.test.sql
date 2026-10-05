@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(71);
+select plan(74);
 
 -- ---------------------------------------------------------------------------
 -- Cenário (como postgres)
@@ -18,6 +18,15 @@ insert into public.users (id, tenant_id, role_id, nome, email, portal, ativo) va
     (select id from public.roles where code = 'admin_tenant'), 'Admin 101', 'admin.101@teste.local', 'interno', true),
   ('e1e1e1e1-0000-0000-0000-000000000101', '00000000-0000-4000-8000-00000000a001',
     (select id from public.roles where code = 'operacao_tms'), 'TMS 101', 'tms.101@teste.local', 'interno', true);
+
+insert into public.veiculos (id, tenant_id, placa, modelo, frota_codigo) values
+  ('ee101000-0000-0000-0000-000000000001', '00000000-0000-4000-8000-00000000a001', 'TST1A01', 'Caminhão Teste', 'F101');
+insert into public.motoristas (id, tenant_id, nome, vinculo, cnh_numero, cnh_categoria, cnh_validade) values
+  ('f0101000-0000-0000-0000-000000000001', '00000000-0000-4000-8000-00000000a001', 'Ana Cadastro', 'proprio', '12345678901', 'D', '2030-12-31'),
+  ('f0101000-0000-0000-0000-000000000002', '00000000-0000-4000-8000-00000000a001', 'Inativo Cadastro', 'agregado', null, null, null);
+update public.motoristas set status = 'inativo' where id = 'f0101000-0000-0000-0000-000000000002';
+insert into public.rotas_planejadas (id, tenant_id, seq, codigo, data_planejada) values
+  ('ac101000-0000-0000-0000-000000000001', '00000000-0000-4000-8000-00000000a001', 91001, 'RP-T101', '2026-09-28');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -40,15 +49,20 @@ $$;
 -- ---------------------------------------------------------------------------
 select pg_temp.como('adadadad-0000-0000-0000-000000000101');
 set local role authenticated;
-select is(public.app_motorista_vincular_motorista('mot.a101@teste.local', 'Ana Motorista', '123.456.789-01', 'MAT101'),
+select is(public.app_motorista_vincular_motorista('mot.a101@teste.local', 'Ana Motorista', '123.456.789-01', 'MAT101',
+  p_motorista_id => 'f0101000-0000-0000-0000-000000000001'),
   'a1a1a1a1-0000-0000-0000-000000000101'::uuid, 'admin (rh.editar) vincula a motorista A');
 select lives_ok($$ select public.app_motorista_vincular_motorista('mot.b101@teste.local', 'Beto Motorista', '98765432100', 'MAT102') $$,
   'admin vincula o motorista B');
+select throws_ok($$ select public.app_motorista_vincular_motorista('mot.b101@teste.local', 'X', '11111111111', null,
+  p_motorista_id => 'f0101000-0000-0000-0000-000000000002') $$,
+  'P0002', null, 'vincular recusa motorista inativo no cadastro do TMS');
 select throws_ok($$ select public.app_motorista_vincular_motorista('naoexiste@teste.local', 'X', '11111111111') $$,
   'P0002', null, 'vincular exige conta existente no Auth');
 select lives_ok($$ select public.app_motorista_salvar_config(150, 30, 180, '0800-000-0000', null) $$, 'admin salva configuração do app');
 select lives_ok($$ select public.app_motorista_publicar_rota('a1a1a1a1-0000-0000-0000-000000000101', '{
-  "codigo": "R101", "data": "2026-09-28", "tms_veiculo_id": "vei-1", "turno": "integral",
+  "codigo": "R101", "data": "2026-09-28", "rota_planejada_id": "ac101000-0000-0000-0000-000000000001",
+  "veiculo_id": "ee101000-0000-0000-0000-000000000001", "turno": "integral",
   "paradas": [
     {"sequencia": 1, "destinatario_nome": "Mercado Um", "lat": -23.550520, "lng": -46.633308,
      "volumes": [{"codigo_volume": "V1", "nf_numero": "100"}, {"codigo_volume": "V2", "nf_numero": "100"}]},
@@ -76,7 +90,7 @@ create temp table ids as
          (select id from public.app_motorista_paradas p where p.sequencia = 2 and p.rota_id = (select id from public.app_motorista_rotas where codigo = 'R101')) as p2,
          (select id from public.app_motorista_paradas p where p.sequencia = 3 and p.rota_id = (select id from public.app_motorista_rotas where codigo = 'R101')) as p3,
          (select id from public.app_motorista_rotas where codigo = 'R102') as rota_b,
-         (select hodometro_km from public.tms_veiculos where id = 'vei-1') as hodometro;
+         1000.0::numeric as hodometro;
 grant select on ids to authenticated;
 select pg_temp.arquivo('d0000000-0000-0000-0000-000000000001', 'a1a1a1a1-0000-0000-0000-000000000101', 'assinatura_entrega');
 select pg_temp.arquivo('d0000000-0000-0000-0000-000000000002', 'a1a1a1a1-0000-0000-0000-000000000101', 'foto_entrega');
@@ -88,7 +102,9 @@ select pg_temp.como('a1a1a1a1-0000-0000-0000-000000000101');
 set local role authenticated;
 select is(public.app_motorista_contexto() -> 'perfil' ->> 'nome_completo', 'Ana Motorista', 'contexto traz o perfil do motorista');
 select is((public.app_motorista_contexto() -> 'config' ->> 'raio_geofence_m')::int, 150, 'contexto traz o raio do geofence');
-select is(public.app_motorista_meu_veiculo() ->> 'placa', 'BRA-9X21', 'veículo da rota vem de tms_veiculos');
+select is(public.app_motorista_meu_veiculo() ->> 'placa', 'TST1A01', 'veículo da rota vem de veiculos (TMS)');
+select is(public.app_motorista_contexto() -> 'perfil' ->> 'cnh_numero', '12345678901', 'CNH vem do cadastro oficial (motoristas)');
+select is(public.app_motorista_meu_veiculo() ->> 'hodometro_km', null, 'sem checklist ainda, o hodômetro é desconhecido (veiculos não tem a coluna)');
 
 select throws_ok($$ select public.app_motorista_iniciar_rota('c0000000-0000-0000-0000-000000000001', (select rota from ids),
   '[{"key":"pneus","ok":true},{"key":"freios","ok":false}]'::jsonb, 150000) $$,
@@ -100,11 +116,8 @@ select is((public.app_motorista_iniciar_rota('c0000000-0000-0000-0000-0000000000
   '[]'::jsonb, 1)) ->> 'status', 'em_operacao', 'reenvio com a mesma chave devolve o resultado gravado (sem revalidar)');
 select is((select count(*)::int from public.app_motorista_checklists where rota_id = (select rota from ids)), 1,
   'reenvio não duplica o checklist');
-reset role;
-select is((select hodometro_km from public.tms_veiculos where id = 'vei-1'), (select hodometro + 100 from ids),
-  'hodômetro do veículo no TMS avançou');
-select pg_temp.como('a1a1a1a1-0000-0000-0000-000000000101');
-set local role authenticated;
+select is((public.app_motorista_meu_veiculo() ->> 'hodometro_km')::numeric, (select hodometro + 100 from ids),
+  'o último hodômetro conhecido vem do checklist');
 select throws_ok($$ select public.app_motorista_iniciar_rota('c0000000-0000-0000-0000-000000000003', (select rota from ids),
   '[{"key":"x","ok":true}]'::jsonb, 1) $$, '22023', null, 'rota já iniciada não reinicia');
 select throws_ok($$ select public.app_motorista_iniciar_rota('c0000000-0000-0000-0000-000000000004', (select rota_b from ids),

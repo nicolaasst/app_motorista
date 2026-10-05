@@ -93,8 +93,8 @@ Variáveis (`.env.example`): `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY
 ```sql
 select public.app_motorista_vincular_motorista(
   p_email => 'motorista@ngs...', p_nome => 'Nome Completo', p_cpf => '000.000.000-00',
-  p_matricula => '1234', p_motorista_agregado_id => 'mot-1',   -- id em motoristas_agregados (opcional)
-  p_telefone => '11999990000', p_cnh_numero => null, p_cnh_categoria => 'D', p_cnh_validade => '2028-01-31');
+  p_matricula => '1234', p_motorista_id => '<uuid de public.motoristas>',   -- cadastro oficial do TMS (opcional; a CNH vem de lá)
+  p_telefone => '11999990000');
 ```
 
 O motorista entra no app com CPF ou matrícula e a senha definida no convite.
@@ -111,7 +111,7 @@ Com `tms.operar` (tela do TMS ou integração):
 ```sql
 select public.app_motorista_publicar_rota('<user_id do motorista>', '{
   "codigo": "R-2026-0001", "data": "2026-09-28", "turno": "integral",
-  "rota_roteirizador_id": "rota-sp-04", "tms_veiculo_id": "vei-1",
+  "rota_planejada_id": "<uuid de rotas_planejadas>", "veiculo_id": "<uuid de veiculos>",
   "setor": "Zona Sul", "bairros": ["Moema", "Vila Mariana"], "km_previsto": 42.5,
   "origem": { "lat": -23.55, "lng": -46.63, "rotulo": "CD São Paulo" },
   "paradas": [
