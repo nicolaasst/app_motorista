@@ -312,14 +312,14 @@ declare
   v_rota jsonb;
   v_bruto numeric(12,2);
   v_desc numeric(12,2);
-  v_codigo text := btrim(p_recibo ->> 'codigo');
+  v_codigo text := nullif(btrim(p_recibo ->> 'codigo'), '');
 begin
   if not exists (select 1 from public.app_motorista_perfis p where p.user_id = p_motorista_id and p.tenant_id = v_tenant) then
     raise exception 'Motorista não encontrado' using errcode = 'P0002';
   end if;
-  if coalesce(v_codigo, '') = '' then
-    raise exception 'Recibo precisa de codigo' using errcode = '22023';
-  end if;
+  -- Sem código informado, o servidor numera (RC-AAAA-NNNNN).
+  v_codigo := coalesce(v_codigo, 'RC-' || to_char(now() at time zone 'America/Sao_Paulo', 'YYYY') || '-'
+    || lpad(nextval('public.app_motorista_recibo_seq')::text, 5, '0'));
   if jsonb_typeof(p_recibo -> 'itens') is distinct from 'array' or jsonb_array_length(p_recibo -> 'itens') = 0 then
     raise exception 'Recibo sem itens' using errcode = '22023';
   end if;

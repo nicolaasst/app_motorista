@@ -229,6 +229,11 @@ begin
   returning id into v_id;
   insert into public.ocorrencia_eventos (tenant_id, ocorrencia_id, de_status, para_status, nota, autor)
   values (new.tenant_id, v_id, null, 'aberta', 'Aberta pelo App Motorista (insucesso de entrega)', new.motorista_id);
+  -- Rastreio do embarcador: só atualiza a ordem que já existe (a ordem tem o mesmo código do pedido).
+  if v_pedido is not null then
+    update public.ordens_rastreio set status = 'tentativa_falha', motivo_falha = initcap(v_motivo)
+     where tenant_id = v_cliente and codigo = v_pedido and deleted_at is null;
+  end if;
   return null;
 end;
 $fn$;
