@@ -3,6 +3,7 @@
 // Escrita: sempre RPC app_motorista_* (regras, idempotência e prova no servidor).
 export * from "./arquivos";
 export * from "./auth";
+export * from "./dispositivos";
 export { ErroApp } from "./cliente";
 export * from "./perfil";
 export * from "./recibos";
