@@ -1,4 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+/* Ícones empacotados no app (sem CDN): pesos 100–700 e eixo FILL. */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('@fontsource-variable/material-symbols-outlined/files/material-symbols-outlined-latin-fill-normal.woff2') format('woff2-variations');
+}
 
 @tailwind base;
 @tailwind components;
@@ -225,7 +233,7 @@
   .text-code-md { font-family: var(--font-mono); font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: 0.04em; }
   .text-code-sm { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0.02em; }
 
-  /* Material Symbols icon font */
+  /* Material Symbols icon font (empacotada: o app nativo funciona sem rede; ver @font-face no topo) */
   .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
     font-weight: normal; font-style: normal;

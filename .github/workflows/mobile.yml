@@ -1,0 +1,159 @@
+name: Mobile (Android + iOS)
+
+# Gera os builds nativos. SEM Secrets: build de depuração/preview (valida que compila) + pacote .zip com docs/store.
+# COM Secrets: build assinado e, se `enviar` = true (ou tag app-v*), envio ao teste interno do Google e ao TestFlight.
+# NUNCA publica em produção pública: isso é manual no console, com autorização escrita do dono.
+# Nomes dos Secrets e como obtê-los: docs/app/PIPELINE.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      enviar:
+        description: "Enviar ao teste interno do Google e ao TestFlight (exige Secrets)"
+        type: boolean
+        default: false
+      versao:
+        description: "versionName (ex.: 1.0.0)"
+        default: "1.0.0"
+  push:
+    tags: ["app-v*"]
+
+env:
+  # Variáveis públicas do app (valores em Settings > Variables; nada secreto aqui).
+  VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+  VITE_LEGAL_BASE_URL: ${{ vars.VITE_LEGAL_BASE_URL }}
+  VITE_MAPBOX_PUBLIC_TOKEN: ${{ vars.VITE_MAPBOX_PUBLIC_TOKEN }}
+  # versionCode / CFBundleVersion: número da execução + deslocamento (use VERSION_CODE_OFFSET se já houver builds nas lojas).
+  VERSION_CODE: ${{ github.run_number }}
+  VERSION_NAME: ${{ inputs.versao || '1.0.0' }}
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    env:
+      TEM_PLAY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+      - name: Firebase (push) — só se o Secret existir
+        env: { GOOGLE_SERVICES_JSON: "${{ secrets.GOOGLE_SERVICES_JSON }}" }
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; echo "google-services.json presente"; else echo "sem google-services.json: build sem push"; fi
+      - name: Keystore de assinatura — só se o Secret existir
+        id: ks
+        env: { KS_B64: "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" }
+        run: |
+          if [ -n "$KS_B64" ]; then echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.jks"; echo "path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"; echo "assinado=true" >> "$GITHUB_OUTPUT"; else echo "assinado=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Build assinado (.aab)
+        if: steps.ks.outputs.assinado == 'true'
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ steps.ks.outputs.path }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+      - name: Build de depuração (.apk) — sem Secrets
+        if: steps.ks.outputs.assinado != 'true'
+        working-directory: android
+        run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: |
+            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+      - name: Envio ao teste interno do Google
+        if: steps.ks.outputs.assinado == 'true' && (inputs.enviar || startsWith(github.ref, 'refs/tags/app-v')) && env.TEM_PLAY == 'true'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ vars.NGS_APP_ID || 'br.com.ngstransportes.motorista' }}
+          releaseFiles: android/app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: draft
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync ios
+      - name: Versão do Xcode
+        run: xcodebuild -version
+      - name: Certificados (só se os Secrets existirem)
+        id: assina
+        env:
+          P12: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          P12_PASS: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -z "$P12" ] || [ -z "$PROFILE" ]; then echo "assinado=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          KC="$RUNNER_TEMP/build.keychain-db"; SENHA=$(uuidgen)
+          security create-keychain -p "$SENHA" "$KC"; security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$SENHA" "$KC"
+          echo "$P12" | base64 -d > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PASS" -A -t cert -f pkcs12 -k "$KC"
+          security list-keychain -d user -s "$KC"; security set-key-partition-list -S apple-tool:,apple: -k "$SENHA" "$KC" >/dev/null
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+          UUID=$(grep -a -A1 UUID ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision | grep -o '[-A-F0-9]\{36\}' | head -1)
+          echo "assinado=true" >> "$GITHUB_OUTPUT"; echo "perfil=$UUID" >> "$GITHUB_OUTPUT"
+      - name: Build assinado (.ipa)
+        if: steps.assina.outputs.assinado == 'true'
+        working-directory: ios/App
+        env: { TEAM_ID: "${{ secrets.APPLE_TEAM_ID }}" }
+        run: |
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>method</key><string>app-store-connect</string><key>teamID</key><string>${TEAM_ID}</string><key>signingStyle</key><string>manual</string><key>provisioningProfiles</key><dict><key>${{ vars.NGS_APP_ID || 'br.com.ngstransportes.motorista' }}</key><string>${{ steps.assina.outputs.perfil }}</string></dict></dict></plist>
+          PLIST
+          xcodebuild archive -project App.xcodeproj -scheme App -configuration Release -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CURRENT_PROJECT_VERSION="$VERSION_CODE" MARKETING_VERSION="$VERSION_NAME" \
+            CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="$TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="${{ steps.assina.outputs.perfil }}" CODE_SIGN_IDENTITY="Apple Distribution"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" -exportPath "$RUNNER_TEMP/ipa" -exportOptionsPlist "$RUNNER_TEMP/export.plist"
+          mkdir -p "$GITHUB_WORKSPACE/saida" && cp "$RUNNER_TEMP"/ipa/*.ipa "$GITHUB_WORKSPACE/saida/"
+      - name: Build de simulador — sem Secrets (valida que compila)
+        if: steps.assina.outputs.assinado != 'true'
+        working-directory: ios/App
+        run: |
+          xcodebuild build -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="$VERSION_CODE" MARKETING_VERSION="$VERSION_NAME"
+          mkdir -p "$GITHUB_WORKSPACE/saida" && echo "build de simulador ok (sem .ipa: faltam os Secrets de assinatura)" > "$GITHUB_WORKSPACE/saida/LEIA-ME.txt"
+      - uses: actions/upload-artifact@v4
+        with: { name: ios, path: saida/*, if-no-files-found: error }
+      - name: Envio ao TestFlight
+        if: steps.assina.outputs.assinado == 'true' && (inputs.enviar || startsWith(github.ref, 'refs/tags/app-v'))
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          if [ -z "$KEY_ID" ] || [ -z "$ISSUER" ] || [ -z "$KEY_P8" ]; then echo "Secrets do App Store Connect ausentes: .ipa gerado, envio pulado"; exit 0; fi
+          mkdir -p ~/.appstoreconnect/private_keys && echo "$KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          xcrun altool --upload-app --type ios --file saida/*.ipa --apiKey "$KEY_ID" --apiIssuer "$ISSUER"
+
+  pacote:
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: artefatos }
+      - name: Pacote .zip (builds + docs/store + instruções)
+        run: |
+          mkdir -p pacote && cp -r artefatos pacote/builds && cp -r docs/store pacote/store && cp docs/app/PIPELINE.md docs/app/TESTE_EM_APARELHO.md pacote/
+          (cd pacote && zip -qr ../ngs-driver-pacote-lojas.zip .)
+      - uses: actions/upload-artifact@v4
+        with: { name: pacote-lojas, path: ngs-driver-pacote-lojas.zip }
