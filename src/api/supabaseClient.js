@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { armazenamentoSeguro } from "@/lib/armazenamentoSeguro";
+import { ehNativo } from "@/lib/nativo";
 
 // Mesmo projeto Supabase do TMS (rcweqbvdkskjtzjgpsnl): mesmas variáveis públicas.
 // A chave publicável/anon é pública por natureza; o que protege os dados é a RLS.
@@ -47,7 +49,8 @@ const armazenamentoSessao = {
 export const supabase = supabaseConfigurado
   ? createClient(url, chave, {
       auth: {
-        storage: armazenamentoSessao,
+        // No app nativo a sessão fica no Keychain/Keystore; no navegador, em localStorage/sessionStorage.
+        storage: ehNativo() ? armazenamentoSeguro : armazenamentoSessao,
         storageKey: "ngs.driver.auth",
         persistSession: true,
         autoRefreshToken: true,

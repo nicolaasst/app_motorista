@@ -246,3 +246,8 @@
 @media (min-width: 768px) {
   .text-display-lg { font-size: 40px; line-height: 48px; }
 }
+/* Leitor de código de barras nativo (ML Kit): a câmera nativa fica atrás da webview, que precisa ser transparente. */
+body.barcode-scanner-active,
+body.barcode-scanner-active #root {
+  background: transparent !important;
+}

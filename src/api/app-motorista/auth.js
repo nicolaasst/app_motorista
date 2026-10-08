@@ -1,4 +1,5 @@
 import { definirLembrarLogin, supabase } from "@/api/supabaseClient";
+import { desativarPush } from "@/lib/pushNativo";
 import { ErroApp, funcao } from "./cliente";
 
 // Login por CPF/matrícula e recuperação de senha passam pela Edge Function
@@ -38,5 +39,6 @@ export async function definirNovaSenha(senha) {
 }
 
 export async function sair() {
+  await desativarPush(); // antes do signOut: ainda há sessão para o banco aceitar a remoção
   await supabase?.auth.signOut();
 }

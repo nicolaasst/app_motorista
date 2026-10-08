@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { registrarGps, trilhaDaRota } from "@/api/app-motorista";
 import { averageHeading, bearing, haversine } from "@/lib/geo";
+import { assistirPosicao } from "@/lib/fontePosicao";
 import { enqueueGpsPoints } from "@/lib/offlineQueue";
 import { lembrarPosicao } from "@/lib/posicao";
 
@@ -68,9 +69,9 @@ export function useDriverTracking({ route, enabled = true }) {
   }, [route?.id]);
 
   useEffect(() => {
-    if (!enabled) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    if (!enabled) return undefined;
     const R = refs.current;
+    let fonte = null;
 
     const persistPoint = (point) => {
       R.track.push(point);
@@ -163,6 +164,7 @@ export function useDriverTracking({ route, enabled = true }) {
         now,
       );
 
+      fonte?.ajustar(stopped);
       setState({
         position: R.displayPos,
         heading: R.heading ?? null,
@@ -175,12 +177,8 @@ export function useDriverTracking({ route, enabled = true }) {
 
     const onErr = () => setState((s) => ({ ...s, gpsOk: false }));
 
-    const watchId = navigator.geolocation.watchPosition(onPos, onErr, {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 20000,
-    });
-    return () => navigator.geolocation.clearWatch(watchId);
+    fonte = assistirPosicao(onPos, onErr);
+    return () => fonte?.parar();
   }, [enabled]);
 
   return { ...state, track };

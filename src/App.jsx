@@ -14,6 +14,8 @@ import { safeReturnTo } from '@/lib/authReturnTo';
 import ScrollToTop from './components/ScrollToTop';
 import AppLayout from '@/components/AppLayout';
 import ThemeSync from '@/components/ThemeSync';
+import BloqueioBiometrico from '@/components/BloqueioBiometrico';
+import SincronizacaoNativa from '@/components/SincronizacaoNativa';
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
 
@@ -100,6 +102,8 @@ const AuthenticatedApp = () => {
   return (
     <>
       <ThemeSync />
+      <SincronizacaoNativa />
+      <BloqueioBiometrico />
       <TabStackSync />
       <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <motion.div

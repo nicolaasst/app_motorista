@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/rp/StatusPill";
 import { Sheet } from "@/components/rp/Sheet";
 import { SelectionRow } from "@/components/rp/SelectionRow";
 import { Switch } from "@/components/rp/Switch";
+import { biometriaAtiva, biometriaDisponivel, confirmarBiometria, definirBiometriaAtiva } from "@/lib/biometria";
 import { maskCpf, maskPhone } from "@/lib/masks";
 import { EMPTY_VALUE } from "@/lib/utils";
 import { applyTheme } from "@/lib/theme";
@@ -31,6 +32,20 @@ const THEME_OPTIONS = [
 export default function Profile() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [bio, setBio] = useState({ disponivel: false, ativa: biometriaAtiva() });
+  useEffect(() => {
+    let vivo = true;
+    biometriaDisponivel().then((d) => vivo && setBio((b) => ({ ...b, disponivel: d })));
+    return () => {
+      vivo = false;
+    };
+  }, []);
+  const alternarBiometria = async (ligar) => {
+    // Para ligar, confirma a biometria agora: garante que ela funciona antes de depender dela.
+    if (ligar && !(await confirmarBiometria("Ativar o desbloqueio por biometria"))) return;
+    definirBiometriaAtiva(ligar);
+    setBio((b) => ({ ...b, ativa: ligar }));
+  };
   const [busy, setBusy] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [navSheet, setNavSheet] = useState(false);
@@ -256,6 +271,9 @@ export default function Profile() {
         <div className="card mt-2 divide-y divide-border">
           <PrefRow icon="navigation" title="Navegador Padrão" value={pref ? PREF_NAV[pref.default_nav_app] || pref.default_nav_app : EMPTY_VALUE} chevron onClick={() => setNavSheet(true)} />
           <PrefRow icon="volume_up" title="Alertas Sonoros & Bipagem" trailing={<Switch checked={!!pref?.sound_alerts} onChange={(v) => savePref({ sound_alerts: v })} />} />
+          {bio.disponivel && (
+            <PrefRow icon="fingerprint" title="Desbloqueio por biometria" trailing={<Switch checked={bio.ativa} onChange={alternarBiometria} label="Desbloqueio por biometria" />} />
+          )}
           <PrefRow icon="cloud_off" title="Mapas Offline" value={pref?.offline_map_mb ? `${pref.offline_map_mb} MB` : EMPTY_VALUE} chevron onClick={() => navigate("/profile/offline-maps")} />
           <PrefRow icon="dark_mode" title="Tema do Painel" value={pref ? PREF_THEME[pref.theme] || pref.theme : "Sistema"} chevron onClick={() => setThemeSheet(true)} />
         </div>

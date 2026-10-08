@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Icon } from "./Icon";
+import { BarcodeScanner as LeitorNativo, LensFacing } from "@capacitor-mlkit/barcode-scanning";
 import { hapticsSucesso, hapticsErro, hapticsDuplicado } from "@/lib/haptics";
+import { ehNativo } from "@/lib/nativo";
+
+// No app nativo a leitura é do ML Kit (a webview do iOS não tem BarcodeDetector e a do Android é instável):
+// a câmera nativa fica ATRÁS da webview, que fica transparente (classe no body, ver index.css).
+const CLASSE_LEITOR_NATIVO = "barcode-scanner-active";
 
 // Beep via Web Audio API — no asset needed.
 function beep() {
@@ -48,6 +54,7 @@ export function BarcodeScanner({ mode = "volume", onScan, lastResult, resultKind
   const [error, setError] = useState(null);
   const [manualCode, setManualCode] = useState("");
   const [flash, setFlash] = useState(false);
+  const nativo = ehNativo();
 
   const fireFeedback = useCallback((kind) => {
     beep();
@@ -78,7 +85,29 @@ export function BarcodeScanner({ mode = "volume", onScan, lastResult, resultKind
   useEffect(() => {
     let cancelled = false;
 
+    let ouvinte = null;
+    const startNativo = async () => {
+      try {
+        const permissao = await LeitorNativo.requestPermissions();
+        if (permissao.camera !== "granted" && permissao.camera !== "limited") {
+          if (!cancelled) setError("Permissão da câmera negada. Libere nas configurações do aparelho ou digite o código.");
+          return;
+        }
+        ouvinte = await LeitorNativo.addListener("barcodesScanned", (ev) => handleCode(ev.barcodes?.[0]?.rawValue));
+        if (cancelled) {
+          ouvinte.remove();
+          return;
+        }
+        document.body.classList.add(CLASSE_LEITOR_NATIVO);
+        await LeitorNativo.startScan({ lensFacing: LensFacing.Back });
+      } catch (e) {
+        document.body.classList.remove(CLASSE_LEITOR_NATIVO);
+        if (!cancelled) setError(e?.message || "Não foi possível acessar a câmera");
+      }
+    };
+
     const start = async () => {
+      if (nativo) return startNativo();
       if (!("BarcodeDetector" in window)) {
         setSupported(false);
         return;
@@ -119,6 +148,11 @@ export function BarcodeScanner({ mode = "volume", onScan, lastResult, resultKind
 
     return () => {
       cancelled = true;
+      if (nativo) {
+        document.body.classList.remove(CLASSE_LEITOR_NATIVO);
+        ouvinte?.remove();
+        LeitorNativo.stopScan().catch(() => {});
+      }
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     };
@@ -134,7 +168,7 @@ export function BarcodeScanner({ mode = "volume", onScan, lastResult, resultKind
   const modeLabel = mode === "nf" ? "Bipagem de NF (Lote)" : "Bipagem de Volume";
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-onyx text-white">
+    <div className={`fixed inset-0 z-[60] flex flex-col text-white ${nativo && !error ? "bg-transparent" : "bg-onyx"}`}>
       {/* Flash overlay */}
       <div className={`pointer-events-none absolute inset-0 bg-white transition-opacity duration-150 ${flash ? "opacity-40" : "opacity-0"}`} />
 
@@ -155,7 +189,7 @@ export function BarcodeScanner({ mode = "volume", onScan, lastResult, resultKind
       <div className="relative flex-1 overflow-hidden">
         {supported && !error && (
           <>
-            <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+            {!nativo && <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />}
             {/* Scan frame overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="relative h-48 w-72 rounded-3xl border-2 border-white/30 landscape:h-32 landscape:w-52">
