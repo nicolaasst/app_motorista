@@ -40,7 +40,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Rastreio da rota: localização só com a rota ativa, em serviço em primeiro plano (notificação persistente).
-         NÃO usa ACCESS_BACKGROUND_LOCATION: o serviço é iniciado com o app visível (ver docs/app/ADR-001-capacitor.md). -->
+         NÃO declara ACCESS_BACKGROUND_LOCATION: o serviço é iniciado com o app visível. O Play ainda exige as declarações de localização e de
+         serviço em primeiro plano (ver docs/app/ADR-001-capacitor.md e docs/store/). -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

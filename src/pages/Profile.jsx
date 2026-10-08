@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/rp/StatusPill";
 import { Sheet } from "@/components/rp/Sheet";
 import { SelectionRow } from "@/components/rp/SelectionRow";
 import { Switch } from "@/components/rp/Switch";
+import { LINKS_LEGAIS } from "@/lib/linksLegais";
 import { biometriaAtiva, biometriaDisponivel, confirmarBiometria, definirBiometriaAtiva } from "@/lib/biometria";
 import { maskCpf, maskPhone } from "@/lib/masks";
 import { EMPTY_VALUE } from "@/lib/utils";
@@ -302,6 +303,13 @@ export default function Profile() {
         <span className="flex items-center gap-1"><Icon name="privacy_tip" size={14} /> Política LGPD</span>
       </div>
       <p className="mt-2 text-center text-label-sm text-muted-foreground">NGS Driver v2.4.12-PRO</p>
+
+      {(LINKS_LEGAIS.privacidade || LINKS_LEGAIS.termos) && (
+        <div className="mt-5 flex items-center justify-center gap-4 text-label-md font-semibold text-muted-foreground">
+          {LINKS_LEGAIS.privacidade && <a href={LINKS_LEGAIS.privacidade} target="_blank" rel="noreferrer" className="underline">Política de privacidade</a>}
+          {LINKS_LEGAIS.termos && <a href={LINKS_LEGAIS.termos} target="_blank" rel="noreferrer" className="underline">Termos de uso</a>}
+        </div>
+      )}
 
       <button onClick={logout} disabled={busy} className="rp-tap mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-destructive/30 bg-error-container/30 py-3 text-label-md text-destructive disabled:opacity-70">
         <Icon name="logout" size={20} /> Desconectar da Conta

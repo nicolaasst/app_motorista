@@ -25,10 +25,12 @@ biometria e funcionamento offline, nas lojas Apple e Google.
 `CapacitorHttp` está ligado: `fetch`/XHR passam pelo código nativo, porque o Android estrangula HTTP da webview em segundo plano.
 `android.useLegacyBridge: true` evita o corte do rastreio após ~5 min em segundo plano.
 
-## Rastreio — como funciona e por que não pede "localização em segundo plano" no Android
-- A rota ativa inicia o serviço **com o app visível**. O Android mantém um serviço em primeiro plano do tipo `location` recebendo posição
-  com a tela bloqueada **sem** `ACCESS_BACKGROUND_LOCATION` (que exigiria a declaração de localização em segundo plano do Play). Mesmo assim o Play
-  exige a declaração de **serviço em primeiro plano (tipo localização)** com vídeo — ver `docs/store/`.
+## Rastreio — como funciona e o que o Google Play vai exigir
+- A rota ativa inicia o serviço **com o app visível**. O Android mantém um serviço em primeiro plano do tipo `location` recebendo posição com a tela
+  bloqueada, **sem** a permissão `ACCESS_BACKGROUND_LOCATION` (o manifesto não a declara — pedir menos permissão é a regra do Google).
+- **Mas o Play trata localização via serviço em primeiro plano equivalente a segundo plano como localização em segundo plano.** Prepare e preencha as duas
+  declarações no Play Console (App content): *Permissões de localização* e *Serviço em primeiro plano (tipo localização)*, cada uma com vídeo, divulgação
+  destacada dentro do app e política de privacidade. Rascunhos em `docs/store/`.
 - Frequência adaptativa (`src/lib/perfilRastreio.js`): em movimento, um ponto a cada ≥10 s e ≥25 m; parado por 90 s, um ponto a cada ≥2 min.
   A troca só vale depois de a condição se manter (histerese) e reinicia o serviço nativo.
 - Fila local persistente e envio em lote com retentativa já existiam (`offlineQueue.js`, RPC `app_motorista_registrar_gps`, idempotente por rota+horário).
