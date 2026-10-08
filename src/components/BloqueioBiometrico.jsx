@@ -1,60 +1,39 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { App as CapApp } from "@capacitor/app";
-import { useAuth } from "@/lib/AuthContext";
-import { biometriaAtiva, confirmarBiometria, TEMPO_BLOQUEIO_MS } from "@/lib/biometria";
-import { ehNativo } from "@/lib/nativo";
+import { useEffect, useRef } from "react";
 import { Icon } from "@/components/rp/Icon";
+import { useBiometria } from "@/lib/BiometriaContext";
 
 /**
- * Bloqueia o app (tela cheia) quando ele volta do segundo plano depois de TEMPO_BLOQUEIO_MS
- * e a biometria está ativa. Só no app nativo, só com sessão aberta. Sem biometria válida,
- * a saída é encerrar a sessão e entrar de novo com senha.
+ * Tela de bloqueio (cobre o app inteiro, opaca) enquanto a biometria não é confirmada.
+ * Pede a biometria sozinha ao aparecer; falhou/cancelou/indisponível → o motorista tenta de novo ou entra com a senha.
  */
 export default function BloqueioBiometrico() {
-  const { isAuthenticated, logout } = useAuth();
-  const [bloqueado, setBloqueado] = useState(false);
-  const saiuEm = useRef(null);
-
-  const desbloquear = useCallback(async () => {
-    if (await confirmarBiometria("Desbloquear o NGS Driver")) setBloqueado(false);
-  }, []);
+  const { bloqueado, erro, ocupado, aparelho, desbloquear, usarSenha } = useBiometria();
+  const pediu = useRef(false);
 
   useEffect(() => {
-    if (!ehNativo() || !isAuthenticated) return undefined;
-    let remover = null;
-    let vivo = true;
-    CapApp.addListener("appStateChange", ({ isActive }) => {
-      if (!isActive) {
-        saiuEm.current = Date.now();
-        return;
-      }
-      const fora = saiuEm.current ? Date.now() - saiuEm.current : 0;
-      saiuEm.current = null;
-      if (biometriaAtiva() && fora >= TEMPO_BLOQUEIO_MS) {
-        setBloqueado(true);
-        void desbloquear();
-      }
-    }).then((h) => {
-      if (vivo) remover = h;
-      else h.remove();
-    });
-    return () => {
-      vivo = false;
-      remover?.remove();
-    };
-  }, [isAuthenticated, desbloquear]);
+    if (!bloqueado) {
+      pediu.current = false;
+      return;
+    }
+    if (!pediu.current) {
+      pediu.current = true;
+      void desbloquear();
+    }
+  }, [bloqueado, desbloquear]);
 
   if (!bloqueado) return null;
+  const rotulo = aparelho.tipo === "rosto" ? "o rosto" : aparelho.tipo === "digital" ? "a digital" : "a biometria";
   return (
     <div role="dialog" aria-modal="true" aria-label="App bloqueado" className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
-      <Icon name="lock" size={48} />
-      <p className="text-body-lg font-bold">App bloqueado</p>
-      <p className="text-body-sm text-muted-foreground">Confirme com a biometria do aparelho para continuar.</p>
-      <button type="button" onClick={() => void desbloquear()} className="rp-tap rounded-2xl bg-primary px-6 py-3 text-label-lg font-bold text-primary-foreground">
-        Desbloquear
+      <Icon name={aparelho.tipo === "rosto" ? "face" : "fingerprint"} size={56} />
+      <p className="text-headline-sm font-extrabold">App bloqueado</p>
+      <p className="text-body-md text-muted-foreground">Use {rotulo} do aparelho para continuar.</p>
+      {erro && <p role="alert" className="rounded-2xl bg-error-container/40 px-4 py-2 text-body-sm font-semibold text-destructive">{erro}</p>}
+      <button type="button" disabled={ocupado} onClick={() => void desbloquear()} className="rp-tap rounded-full bg-primary px-6 py-3 text-label-lg font-bold text-primary-foreground disabled:opacity-60">
+        {ocupado ? "Aguardando…" : "Usar biometria"}
       </button>
-      <button type="button" onClick={() => void logout()} className="rp-tap text-label-md font-bold text-muted-foreground underline">
-        Sair e entrar com senha
+      <button type="button" onClick={() => void usarSenha()} className="rp-tap text-label-md font-bold text-muted-foreground underline">
+        Entrar com senha
       </button>
     </div>
   );

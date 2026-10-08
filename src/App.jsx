@@ -15,6 +15,8 @@ import ScrollToTop from './components/ScrollToTop';
 import AppLayout from '@/components/AppLayout';
 import ThemeSync from '@/components/ThemeSync';
 import BloqueioBiometrico from '@/components/BloqueioBiometrico';
+import OfertaBiometria from '@/components/OfertaBiometria';
+import { BiometriaProvider, useBiometria } from '@/lib/BiometriaContext';
 import SincronizacaoNativa from '@/components/SincronizacaoNativa';
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -67,13 +69,15 @@ const ROTAS_PUBLICAS = ['/login', '/forgot'];
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isAuthenticated, authError } = useAuth();
+  const { pronto: biometriaPronta } = useBiometria();
   const location = useLocation();
   const prevPath = useRef(null);
   const direction = getNavDirection(prevPath.current, location.pathname);
   prevPath.current = location.pathname;
   const publica = ROTAS_PUBLICAS.includes(location.pathname);
 
-  if (isLoadingAuth) {
+  // Espera a sessão E o estado da biometria: com biometria ativa o app abre já bloqueado, sem mostrar conteúdo.
+  if (isLoadingAuth || !biometriaPronta) {
     return <PageLoader />;
   }
 
@@ -104,6 +108,7 @@ const AuthenticatedApp = () => {
       <ThemeSync />
       <SincronizacaoNativa />
       <BloqueioBiometrico />
+      {location.pathname === '/' && <OfertaBiometria />}
       <TabStackSync />
       <AnimatePresence mode="popLayout" initial={false} custom={direction}>
         <motion.div
@@ -157,6 +162,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <BiometriaProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
@@ -164,6 +170,7 @@ function App() {
         </Router>
         <Toaster />
       </QueryClientProvider>
+      </BiometriaProvider>
     </AuthProvider>
   )
 }

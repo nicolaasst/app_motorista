@@ -13,7 +13,7 @@ vi.mock("@aparajita/capacitor-secure-storage", () => ({
 
 import { SecureStorage } from "@aparajita/capacitor-secure-storage";
 import { armazenamentoSeguro } from "@/lib/armazenamentoSeguro";
-import { biometriaAtiva, biometriaDisponivel, definirBiometriaAtiva } from "@/lib/biometria";
+import { lerEstadoBiometria } from "@/lib/biometria";
 import { ehNativo, plataforma } from "@/lib/nativo";
 
 describe("casca nativa no navegador", () => {
@@ -25,13 +25,7 @@ describe("casca nativa no navegador", () => {
   it("no navegador não é nativo e a biometria não está disponível", async () => {
     expect(ehNativo()).toBe(false);
     expect(plataforma()).toBe("web");
-    expect(await biometriaDisponivel()).toBe(false);
-  });
-
-  it("lembra a escolha da biometria", () => {
-    expect(biometriaAtiva()).toBe(false);
-    definirBiometriaAtiva(true);
-    expect(biometriaAtiva()).toBe(true);
+    expect((await lerEstadoBiometria()).disponivel).toBe(false);
   });
 
   it("guarda a sessão no armazenamento seguro com prefixo e sem tocar no localStorage", async () => {
