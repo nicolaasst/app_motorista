@@ -5,7 +5,9 @@ import { Icon } from "@/components/rp/Icon";
 import { CollapsibleStopCard } from "@/components/rp/CollapsibleStopCard";
 import { NavMap } from "@/components/route/NavMap";
 import { SyncStatusBar } from "@/components/route/SyncStatusBar";
+import DivulgacaoLocalizacao from "@/components/DivulgacaoLocalizacao";
 import { useDriverTracking } from "@/hooks/useDriverTracking";
+import { precisaDivulgarLocalizacao, registrarDivulgacaoLocalizacao } from "@/lib/divulgacaoLocalizacao";
 import { useRouteNavigation } from "@/hooks/useRouteNavigation";
 import { useSyncStatus } from "@/hooks/useSyncStatus";
 import { useRouteChangeAlert } from "@/hooks/useRouteChangeAlert";
@@ -91,7 +93,9 @@ function NoActiveRoute() {
 
 function NavigationScreen({ route, stops, nextStop }) {
   const navigate = useNavigate();
-  const tracking = useDriverTracking({ route, enabled: true });
+  // No app nativo o rastreio só começa depois da divulgação destacada (antes da permissão do sistema).
+  const [divulgado, setDivulgado] = useState(() => !precisaDivulgarLocalizacao());
+  const tracking = useDriverTracking({ route, enabled: divulgado });
   const nav = useRouteNavigation({
     route,
     stops,
@@ -114,6 +118,14 @@ function NavigationScreen({ route, stops, nextStop }) {
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background">
+      <DivulgacaoLocalizacao
+        open={!divulgado}
+        onAceitar={() => {
+          registrarDivulgacaoLocalizacao();
+          setDivulgado(true);
+        }}
+        onRecusar={() => navigate(-1)}
+      />
       <div className="relative min-h-0 flex-1 overflow-hidden bg-navy">
         <NavMap
           position={driverPos}
