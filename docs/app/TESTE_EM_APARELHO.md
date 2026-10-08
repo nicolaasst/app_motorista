@@ -22,7 +22,7 @@
 | 8 | Parado | Fique parado 5 min | perfil "parado": 1 ponto a cada ~2 min |
 | 9 | Push | Cadastre o aparelho (entre no app) e confira a linha em `app_motorista_dispositivos` | token presente; (envio real só após a Edge Function com credencial) |
 | 10 | Leitor de código | Bipe 5 volumes e uma NF | leitura nativa, sem travar; manual funciona |
-| 11 | Biometria | Ative no Perfil, deixe o app 2 min em segundo plano | pede biometria; "Sair e entrar com senha" funciona |
+| 11 | Biometria — roteiro completo em `BIOMETRIA.md` §7 | Ative, feche o app, abra de novo; deixe 2 min em segundo plano; erre a digital; cancele; tente sem digital cadastrada | pede a biometria na abertura e ao voltar; falha/cancelamento mostram a mensagem; "Entrar com senha" encerra a sessão e volta ao login |
 
 ## Como medir pelo TMS (posições recebidas × esperadas, lacunas)
 Substitua `:rota` pelo id da rota e rode no SQL Editor (somente leitura):

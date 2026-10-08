@@ -1,4 +1,5 @@
 import { definirLembrarLogin, supabase } from "@/api/supabaseClient";
+import { limparBiometria } from "@/lib/biometria";
 import { desativarPush } from "@/lib/pushNativo";
 import { ErroApp, funcao } from "./cliente";
 
@@ -38,7 +39,9 @@ export async function definirNovaSenha(senha) {
   await supabase.auth.signOut();
 }
 
+/** Logout completo: aparelho sai do push, biometria é desligada e a sessão (token no cofre seguro) é encerrada. */
 export async function sair() {
   await desativarPush(); // antes do signOut: ainda há sessão para o banco aceitar a remoção
+  await limparBiometria(); // a biometria não sobrevive à sessão: o próximo acesso é com senha
   await supabase?.auth.signOut();
 }
